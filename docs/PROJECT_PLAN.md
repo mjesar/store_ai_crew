@@ -221,6 +221,17 @@ indirectly. They are listed so they are not lost, and so they are not started ea
   tracks which products get mentioned.
 - **Bargain agent:** an agent negotiates price inside limits the owner sets, code enforces
   the floor, n8n creates the discount code.
+- **More owner channels:** the same alerts and approvals on other apps, so the owner is
+  reached where they already are. Each one replaces only the last node of a workflow
+  (see D15).
+  - **WhatsApp** (Business Cloud API): what most store owners actually use. Heaviest
+    setup: a Meta business account, verification, approved message templates, and a
+    24-hour window for free-form replies. **Confirm** current pricing and free
+    allowance.
+  - **Slack:** common for small teams. Free plan, a Slack app with scopes, buttons
+    built in.
+  - **Microsoft Teams:** for stores run inside a Microsoft 365 company. Needs a Microsoft
+    365 setup, so check what a free or trial account allows before starting.
 
 ## 9. How progress is tracked
 
