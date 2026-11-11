@@ -88,9 +88,6 @@ in all three places. See D8 in [../DECISIONS.md](../DECISIONS.md).
     Checked 2026-11-12: `chat:write` alone is enough to post when the channel is given
     by ID. The "Slack API" credential with the bot access token works; its Signature
     Secret field is left empty until phase 2 (incoming Slack requests).
-  - Result: the message reaches Slack on the laptop and the phone app. The phone did not
-    buzz; that is a Slack app notification setting, accepted as done for now and to be
-    fixed before the phase 1 recording (see "What broke").
   - Done when: clicking "Execute workflow" makes your phone buzz with a Slack
     notification, and the run appears in the execution log.
   - Learn here: nodes, credentials, executions and the execution log.
@@ -254,14 +251,6 @@ most useful section for the post, so write it when it happens.
   **Base URL** field, default `https://api.telegram.org`, checked in the container
   source), moving to the server sooner, or Slack while on the laptop (D15). Store owners
   in Pakistan would hit the same block, which makes the WhatsApp extra more valuable.
-
-- **2026-11-12, step 1.4: Slack messages arrive on the phone without a notification.**
-  The phone app shows the message, phone notifications for Slack are on, but nothing
-  buzzes. The cause is in Slack's own settings, not n8n. Usual suspects: "Notify me
-  about" set to mentions and direct messages only (a bot post is an ordinary message),
-  phone notifications held back while Slack is active on the laptop, and battery saving
-  on Android. Not fixed yet; it has to be before the phase 1 recording, which shows the
-  alert arriving on the phone.
 
 ## Proof
 

@@ -100,7 +100,6 @@ Phase 2 must settle where the agents' store tools come from (Q1 in `DECISIONS.md
 Phase 1, step 1.5: Shopify development store and Admin API access. Steps 1.1 to 1.4
 done (n8n 2.47.4 on 127.0.0.1:5678; workflow `Slack test` posts to `#store-alerts` via
 the Slack app `Store AI Crew`, bot scope `chat:write` only, channel by ID, token in n8n's
-credential store). Open from 1.4: the phone gets the message but no notification (a
-Slack app setting), to fix before the phase 1 recording. Mohammad has no password
+credential store). Mohammad has no password
 manager yet (Bitwarden suggested), so the encryption key in `.env` has no backup.
 Multipass comes at 1.13. Update this line as steps complete.
