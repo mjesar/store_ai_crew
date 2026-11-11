@@ -44,19 +44,19 @@ This is the low-stock workflow as it should work at the end of phase 2.
    has been selling, and works out how many days of stock are left.
 5. **Draft:** the agent writes a reorder email to the supplier with a suggested quantity
    and its reasoning.
-6. **Ask:** the owner gets a Telegram message: the product, days of stock left, the drafted
+6. **Ask:** the owner gets a Slack message: the product, days of stock left, the drafted
    email, and Approve / Reject buttons.
 7. **Act:** on Approve, n8n sends the email. On Reject, nothing is sent. Either way the
    decision is logged.
 
-In phase 1 this stops after step 3 with a plain Telegram alert. No AI is involved until
+In phase 1 this stops after step 3 with a plain Slack alert. No AI is involved until
 phase 2. That is on purpose: the plumbing has to be trustworthy before an agent sits on it.
 
 ## 3. Architecture
 
 ```
    Shopify dev store                              Owner's phone
-   (webhooks, Admin API)                          (Telegram)
+   (webhooks, Admin API)                          (Slack)
           |    ^                                    ^    |
   webhook |    | approved action           alert /  |    | Approve /
           v    |                           draft    |    v Reject
@@ -99,7 +99,7 @@ The same compose file is used in all three places.
 | --- | --- | --- |
 | Workflow engine | n8n, self-hosted in Docker | Free to self-host, common in automation job posts, visual runs are easy to demo |
 | Store | Shopify development store | Free, real webhooks and Admin API |
-| Owner channel | Telegram bot | Free, works from a phone, supports buttons for approvals |
+| Owner channel | Slack (free plan) | Free, phone app, approval buttons, what small businesses use. Telegram is blocked from Pakistan (D16) |
 | Agents | Ruby on Rails (phase 2 onward) | Main language, reuses earlier agent code |
 | LLM | Gemini or Groq free tier | Free, both already used in earlier projects |
 | Store tools | MCP, via shop_mcp_server or Shopify's own endpoints | See open question Q1 in [DECISIONS.md](DECISIONS.md) |
@@ -122,13 +122,13 @@ phase 1 teaches will change them.
 
 ### Phase 1: Backbone (no AI)
 
-**Goal:** stock drops on the dev store, and a Telegram alert arrives on the phone within
+**Goal:** stock drops on the dev store, and a Slack alert arrives on the phone within
 seconds, exactly once, even if Shopify sends the event twice or a step fails.
 
 - Self-hosted server running n8n in Docker
 - Shopify webhook reaching n8n over a public HTTPS address
 - Signature check, duplicate protection, threshold check, product lookup
-- Telegram alert, plus an alert when the workflow itself fails
+- Slack alert, plus an alert when the workflow itself fails
 - Workflow exported to the repo as JSON
 
 **Showable:** a short recording of changing stock in Shopify admin and the alert arriving.
@@ -143,7 +143,7 @@ seconds, exactly once, even if Shopify sends the event twice or a step fails.
 - Low stock: sales speed check, drafted supplier reorder, approve, send
 - Bad review: read the review and its order, draft a reply plus a refund or discount
   suggestion, approve
-- Approval flow in Telegram with buttons, and a log of every decision
+- Approval flow in Slack with buttons, and a log of every decision
 - Daily 9 AM brief of what happened and what is waiting
 - Rails app deployed with Kamal beside n8n
 
@@ -164,7 +164,7 @@ fix worked.
 2. Each shopper uses the store through its agent-facing tools and logs where it got stuck:
    product not found, missing size information, unclear returns policy.
 3. A second agent groups the failures and drafts fixes.
-4. The owner approves in Telegram.
+4. The owner approves in Slack.
 5. n8n writes the fix to Shopify.
 6. The same shoppers run again. The pass rate shows whether the fix worked.
 
@@ -223,13 +223,13 @@ indirectly. They are listed so they are not lost, and so they are not started ea
   the floor, n8n creates the discount code.
 - **More owner channels:** the same alerts and approvals on other apps, so the owner is
   reached where they already are. Each one replaces only the last node of a workflow
-  (see D15).
+  (see D15). Slack is the main channel (D16).
   - **WhatsApp** (Business Cloud API): what most store owners actually use. Heaviest
     setup: a Meta business account, verification, approved message templates, and a
     24-hour window for free-form replies. **Confirm** current pricing and free
     allowance.
-  - **Slack:** common for small teams. Free plan, a Slack app with scopes, buttons
-    built in.
+  - **Telegram:** from the server outside Pakistan, where the bot API is reachable.
+    The bot `@mjesar_store_crew_bot` already exists.
   - **Microsoft Teams:** for stores run inside a Microsoft 365 company. Needs a Microsoft
     365 setup, so check what a free or trial account allows before starting.
 

@@ -6,7 +6,7 @@
 
 ## Goal
 
-Stock drops on the Shopify dev store, and a Telegram alert arrives on the phone within
+Stock drops on the Shopify dev store, and a Slack alert arrives on the phone within
 seconds, exactly once, even if Shopify sends the event twice or a step fails.
 
 There is no AI in this phase. An agent is only as reliable as the thing that triggers it,
@@ -75,11 +75,18 @@ in all three places. See D8 in [../DECISIONS.md](../DECISIONS.md).
 
 ### Part B: first workflow and the owner channel
 
-- [ ] **1.4 Send a Telegram message from n8n**
+- [ ] **1.4 Send a Slack message from n8n**
   - Goal: prove the output side works before touching Shopify.
-  - Build: create a bot with BotFather, find your chat ID, add a Telegram credential in
-    n8n, and build a two-node workflow: Manual Trigger, then Telegram "send message".
-  - Done when: clicking "Execute workflow" makes your phone buzz.
+  - Changed from Telegram on 2026-11-11: Telegram's bot API is blocked from Pakistan
+    (see "What broke" and D16).
+  - Build: a free Slack workspace with an alerts channel and the Slack app on your
+    phone. A Slack app (at api.slack.com/apps) with a bot token that may post messages,
+    installed to the workspace and invited to the channel. A Slack credential in n8n,
+    and a two-node workflow: Manual Trigger, then Slack "send message" to the channel.
+  - **Confirm:** which bot token scopes n8n's Slack node needs to post (start with the
+    fewest), and which credential type n8n recommends (bot token or OAuth2).
+  - Done when: clicking "Execute workflow" makes your phone buzz with a Slack
+    notification, and the run appears in the execution log.
   - Learn here: nodes, credentials, executions and the execution log.
 
 ### Part C: Shopify talks to n8n
@@ -131,13 +138,13 @@ in all three places. See D8 in [../DECISIONS.md](../DECISIONS.md).
     once, which means sometimes twice.
   - Build: each delivery carries an ID in its headers (**confirm** the exact header name).
     Remember handled IDs and end the run early on a repeat. Decide where to remember them.
-  - Done when: replaying the same delivery twice sends one Telegram message.
+  - Done when: replaying the same delivery twice sends one Slack message.
 
 - [ ] **1.10 Threshold, product lookup and the alert**
   - Goal: a useful message, only when it matters.
   - Build: an If node on the available quantity against a threshold. Below it, look up the
     product title and variant from the inventory item ID through the Admin API, then send
-    a Telegram message with product, quantity left and a link to it in Shopify admin.
+    a Slack message with product, quantity left and a link to it in Shopify admin.
   - Decide: where the threshold lives (one number for the store to start).
   - Think about: stock going 4 to 3 to 2 sends three alerts for one problem. Decide
     whether that is acceptable in phase 1 or needs a "already alerted" memory.
@@ -148,7 +155,7 @@ in all three places. See D8 in [../DECISIONS.md](../DECISIONS.md).
   - Goal: a failure is seen, not silent.
   - Build: reply to Shopify quickly, before the slow steps (**confirm** Shopify's response
     time limit and retry policy). Add retries on the nodes that call outside services. Add
-    an error workflow that sends a Telegram message when any run fails.
+    an error workflow that sends a Slack message when any run fails.
   - Done when: breaking the Shopify credential on purpose produces a failure alert on the
     phone, and fixing it recovers without a restart.
 
@@ -228,6 +235,19 @@ most useful section for the post, so write it when it happens.
   yes or no. Fix: nothing had been encrypted yet, so the volume was deleted and a new
   key generated. Also learned: n8n copies the key into `config` inside its volume, so
   volume backups are secret too.
+- **2026-11-11, step 1.4: Telegram's bot API is blocked from the laptop in Pakistan.**
+  `api.telegram.org` resolves to Telegram's real address (149.154.166.110), but every
+  connection on ports 443 and 80 times out, while Google, GitHub, Slack, Discord, ntfy
+  and Meta's API answer in under a second. Later `web.telegram.org` loaded, but the bot
+  API stayed blocked. The phone app still works (slowly) because Telegram's apps have
+  their own ways around blocks; n8n makes plain HTTPS calls and has none. Not yet known
+  whether the block is country-wide or one provider (test: same `curl` over a phone
+  hotspot). It only affects development on the laptop: from the Oracle server outside
+  Pakistan the API is reachable directly. Workarounds considered: WARP or a VPN (ruled
+  out by Mohammad), a Cloudflare Worker relay (n8n 2.47.4's Telegram credential has a
+  **Base URL** field, default `https://api.telegram.org`, checked in the container
+  source), moving to the server sooner, or Slack while on the laptop (D15). Store owners
+  in Pakistan would hit the same block, which makes the WhatsApp extra more valuable.
 
 ## Proof
 

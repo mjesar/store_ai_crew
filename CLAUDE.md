@@ -22,7 +22,7 @@ This is a portfolio and learning project. The learning-project rules in the glob
 
 Each phase ends in something showable, with a post.
 
-1. **Backbone (no AI):** self-hosted server, n8n, Shopify webhooks, Telegram alerts,
+1. **Backbone (no AI):** self-hosted server, n8n, Shopify webhooks, Slack alerts,
    one low-stock workflow.
 2. **Ops agent:** drafts a supplier reorder or a bad-review reply, owner approves
    from the phone, n8n carries out the action.
@@ -39,7 +39,8 @@ Extras after phase 4: risky-order flag, product copy claims checker.
   and carrying out the approved action.
 - **Rails agents** do the thinking, using store tools through `shop_mcp_server`
   (from phase 2).
-- **The owner** approves in Telegram.
+- **The owner** approves in Slack (D16; Telegram is blocked from Pakistan, so it is a
+  later extra from the server).
 - **Hosting:** built locally with Docker Compose, rehearsed on a Multipass VM, then
   run on Oracle Cloud Always Free (D8).
   n8n self-hosted in Docker, Kamal for the Rails app, Tailscale for SSH,
@@ -62,9 +63,9 @@ that step.
 ## Constraints
 
 - Free tiers only: Shopify dev store, self-hosted n8n, Gemini or Groq free tier,
-  Telegram bot, Cloudflare Tunnel, Tailscale. Confirm each tier's current terms at
+  Slack free plan, Cloudflare Tunnel, Tailscale. Confirm each tier's current terms at
   the step that first uses it, not from memory.
-- Secrets (Shopify tokens, Telegram bot token, n8n encryption key) never go in git.
+- Secrets (Shopify tokens, Slack bot token, n8n encryption key) never go in git.
   Use an untracked `.env` and commit a `.env.example`.
 - n8n workflows are exported to JSON and committed, so the repo is the source of
   truth and not the n8n database.
@@ -96,6 +97,15 @@ Phase 2 must settle where the agents' store tools come from (Q1 in `DECISIONS.md
 
 ## Current status
 
-Phase 1, step 1.4: first Telegram message from n8n (1.1 to 1.3 done: Docker 29.9.3,
-Compose v5.7.1, n8n 2.47.4 running locally on 127.0.0.1:5678 with a named volume).
-Multipass comes at 1.13. Update this line as steps complete.
+Phase 1, step 1.4: first Slack message from n8n (switched from Telegram, D16). Paused
+2026-11-11. Done: 1.1 to 1.3 (n8n 2.47.4 running locally on 127.0.0.1:5678); Slack
+workspace `mjesar` created on the free plan (declined the Business+ trial); Slack app
+`Store AI Crew` created from scratch ("Pick features") with only the bot scope
+`chat:write`, no user scopes, no events, no app-level token; installed to the
+workspace. Next: `/invite @Store AI Crew` in `#store-alerts`, copy the Channel ID,
+create the n8n Slack credential (access token, pasted straight from Slack's OAuth &
+Permissions page), build Manual Trigger then Slack "Send a message" by channel ID,
+execute. Mohammad has no password manager yet: Bitwarden suggested, so the encryption
+key in `.env` currently has no backup. Slack token goes into n8n's credential store,
+not `.env` (env_file passes everything in `.env` into the container). Multipass comes
+at 1.13. Update this line as steps complete.

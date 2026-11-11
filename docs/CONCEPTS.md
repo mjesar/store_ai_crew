@@ -61,7 +61,7 @@ went wrong. Notes come from doing the step, not from reading about it.
   - Never overwrite an existing key: n8n's saved credentials are encrypted with it,
     and a new key cannot read them. Keep a copy in a password manager.
 
-  Why the key exists: n8n stores tokens (Telegram, Shopify) in its database, encrypted
+  Why the key exists: n8n stores tokens (Slack, Shopify) in its database, encrypted
   with this key. The database alone is useless to a thief. The database plus the key
   gives everything, so they are kept apart.
 
