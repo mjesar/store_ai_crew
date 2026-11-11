@@ -97,15 +97,10 @@ Phase 2 must settle where the agents' store tools come from (Q1 in `DECISIONS.md
 
 ## Current status
 
-Phase 1, step 1.4: first Slack message from n8n (switched from Telegram, D16). Paused
-2026-11-11. Done: 1.1 to 1.3 (n8n 2.47.4 running locally on 127.0.0.1:5678); Slack
-workspace `mjesar` created on the free plan (declined the Business+ trial); Slack app
-`Store AI Crew` created from scratch ("Pick features") with only the bot scope
-`chat:write`, no user scopes, no events, no app-level token; installed to the
-workspace. Next: `/invite @Store AI Crew` in `#store-alerts`, copy the Channel ID,
-create the n8n Slack credential (access token, pasted straight from Slack's OAuth &
-Permissions page), build Manual Trigger then Slack "Send a message" by channel ID,
-execute. Mohammad has no password manager yet: Bitwarden suggested, so the encryption
-key in `.env` currently has no backup. Slack token goes into n8n's credential store,
-not `.env` (env_file passes everything in `.env` into the container). Multipass comes
-at 1.13. Update this line as steps complete.
+Phase 1, step 1.5: Shopify development store and Admin API access. Steps 1.1 to 1.4
+done (n8n 2.47.4 on 127.0.0.1:5678; workflow `Slack test` posts to `#store-alerts` via
+the Slack app `Store AI Crew`, bot scope `chat:write` only, channel by ID, token in n8n's
+credential store). Open from 1.4: the phone gets the message but no notification (a
+Slack app setting), to fix before the phase 1 recording. Mohammad has no password
+manager yet (Bitwarden suggested), so the encryption key in `.env` has no backup.
+Multipass comes at 1.13. Update this line as steps complete.

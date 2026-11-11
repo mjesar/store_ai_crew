@@ -1,6 +1,6 @@
 # Phase 1: Backbone (no AI)
 
-**Status:** in progress, started 2026-11-11. Current step: 1.4.
+**Status:** in progress, started 2026-11-11. Current step: 1.5.
 
 **Environment:** parts A to E run locally on the laptop, part F on a server.
 
@@ -75,7 +75,7 @@ in all three places. See D8 in [../DECISIONS.md](../DECISIONS.md).
 
 ### Part B: first workflow and the owner channel
 
-- [ ] **1.4 Send a Slack message from n8n**
+- [x] **1.4 Send a Slack message from n8n** (done 2026-11-12)
   - Goal: prove the output side works before touching Shopify.
   - Changed from Telegram on 2026-11-11: Telegram's bot API is blocked from Pakistan
     (see "What broke" and D16).
@@ -85,6 +85,12 @@ in all three places. See D8 in [../DECISIONS.md](../DECISIONS.md).
     and a two-node workflow: Manual Trigger, then Slack "send message" to the channel.
   - **Confirm:** which bot token scopes n8n's Slack node needs to post (start with the
     fewest), and which credential type n8n recommends (bot token or OAuth2).
+    Checked 2026-11-12: `chat:write` alone is enough to post when the channel is given
+    by ID. The "Slack API" credential with the bot access token works; its Signature
+    Secret field is left empty until phase 2 (incoming Slack requests).
+  - Result: the message reaches Slack on the laptop and the phone app. The phone did not
+    buzz; that is a Slack app notification setting, accepted as done for now and to be
+    fixed before the phase 1 recording (see "What broke").
   - Done when: clicking "Execute workflow" makes your phone buzz with a Slack
     notification, and the run appears in the execution log.
   - Learn here: nodes, credentials, executions and the execution log.
@@ -249,6 +255,14 @@ most useful section for the post, so write it when it happens.
   source), moving to the server sooner, or Slack while on the laptop (D15). Store owners
   in Pakistan would hit the same block, which makes the WhatsApp extra more valuable.
 
+- **2026-11-12, step 1.4: Slack messages arrive on the phone without a notification.**
+  The phone app shows the message, phone notifications for Slack are on, but nothing
+  buzzes. The cause is in Slack's own settings, not n8n. Usual suspects: "Notify me
+  about" set to mentions and direct messages only (a bot post is an ordinary message),
+  phone notifications held back while Slack is active on the laptop, and battery saving
+  on Android. Not fixed yet; it has to be before the phase 1 recording, which shows the
+  alert arriving on the phone.
+
 ## Proof
 
 Real runs only. If a number has not been measured, it does not go here.
@@ -258,3 +272,4 @@ Real runs only. If a number has not been measured, it does not go here.
 | 2026-11-11 | 1.1: `apt upgrade`, then checked versions and source | Docker Engine 29.9.3 and Compose v5.7.1, both from Docker's official stable apt repository (download.docker.com), installed version equals newest available |
 | 2026-11-11 | 1.2: `.gitignore`, `.env.example`, `.env` with a key from `openssl rand -hex 32` | `git status` lists `.gitignore` and `.env.example`, not `.env`. `.env` has permissions 600 (owner only) |
 | 2026-11-11 | 1.3: n8n `docker.n8n.io/n8nio/n8n:2.47.4` (npm `stable` and `latest` tags; 2.48.1 was beta), port bound to 127.0.0.1, named volume `n8n_data` | `docker compose ps` shows `127.0.0.1:5678->5678/tcp`, `/healthz` returns 200. Owner account created, then `down` and `up -d`: new container (17:17:59 UTC) on the volume from 17:10:50 UTC, n8n reports setup no longer needed, so the data survived |
+| 2026-11-12 | 1.4: Slack app `Store AI Crew` (bot scope `chat:write` only) invited to `#store-alerts`; n8n credential "Slack API" with the bot token; workflow `Slack test` = Manual Trigger, then Slack "Send a message" to the channel by ID | Message "Hello from n8n" posted by Store AI Crew in `#store-alerts` at 1:40 AM local time. n8n appended its default footer "Automated with this n8n workflow" |
