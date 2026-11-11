@@ -44,6 +44,20 @@ Extras after phase 4: risky-order flag, product copy claims checker.
   n8n self-hosted in Docker, Kamal for the Rails app, Tailscale for SSH,
   Cloudflare Tunnel so Shopify webhooks can reach n8n.
 
+## Versions: latest stable, always (Mohammad, 2026-11-11)
+
+Use the newest stable release of everything: Ruby, Rails, Docker, n8n, Ubuntu, gems,
+images. Look the current version up at the step that installs it (release page or
+registry), never from memory. For the server OS, stable means the newest Ubuntu LTS.
+Pin the exact version that was installed (image tags, Gemfile.lock), never a floating
+tag like `latest`, so a rebuild gives the same result. Record the versions used in the
+phase page.
+
+## Security
+
+`docs/SECURITY.md` is the plan. Each measure names the step that builds it; do it at
+that step.
+
 ## Constraints
 
 - Free tiers only: Shopify dev store, self-hosted n8n, Gemini or Groq free tier,

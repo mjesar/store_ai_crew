@@ -19,6 +19,8 @@ then move up into the decisions table.
 | D9 | 2026-11-11 | Telegram for alerts and approvals. | Free, on the phone, and supports buttons. Slack was the alternative and can be added later. |
 | D10 | 2026-11-11 | Learning mode: Mohammad writes all code and config, guided one step at a time. | The point is to be able to explain and rebuild every part. |
 | D11 | 2026-11-11 | n8n workflows are exported as JSON and committed. | Otherwise the real work lives only in n8n's database and the repo shows nothing. |
+| D13 | 2026-11-11 | Latest stable version of everything, looked up at install time and pinned exactly. Newest LTS for Ubuntu. | Mohammad's choice: learn current tools, not outdated ones. Pinning keeps rebuilds identical, so an upgrade is a deliberate step. |
+| D14 | 2026-11-11 | Almost nothing faces the internet: only the webhook path, through Cloudflare Tunnel. Editor and SSH over Tailscale only. | The editor holds every credential. See [SECURITY.md](SECURITY.md). |
 | D12 | 2026-11-11 | Competitors for the mystery shopper idea were not researched. | This is for portfolio and learning, so whether a product already exists does not change the plan. |
 
 ## Open questions

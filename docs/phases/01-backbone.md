@@ -36,8 +36,8 @@ current documentation. Check it at that step and note the answer in
 - [ ] **1.1 Create the virtual machine**
   - Goal: a small Ubuntu machine that behaves like a remote server, so everything learned
     here carries over to the cloud machine unchanged.
-  - Build: install Multipass, launch a VM (2 CPUs, 2 GB memory, 10 GB disk), open a shell
-    in it.
+  - Build: install Multipass, run `multipass find` to see which Ubuntu images it offers,
+    and launch the newest LTS (2 CPUs, 2 GB memory, 10 GB disk). Open a shell in it.
   - Done when: `multipass info <name>` shows the VM running with an IP address, and you
     can get a shell inside it.
 
@@ -158,7 +158,10 @@ current documentation. Check it at that step and note the answer in
 - [ ] **1.14 Move to Oracle Cloud Always Free**
   - Goal: always on, not only while the laptop is open.
   - Build: create the cloud machine, repeat 1.2, 1.3, 1.6 and 1.13 on it, import the
-    workflows, and point the Shopify webhook at the new address.
+    workflows, and point the Shopify webhook at the new address. Then apply the server
+    measures in [../SECURITY.md](../SECURITY.md): keys-only SSH over Tailscale, cloud
+    firewall blocking all inbound, automatic security updates, n8n volume backup with a
+    tested restore.
   - **Confirm:** the current Always Free machine sizes and limits before signing up.
   - This step can move to the start of phase 2 if phase 1 is otherwise ready to show.
   - Done when: the laptop is closed and a stock change still alerts.
