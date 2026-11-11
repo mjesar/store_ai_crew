@@ -40,7 +40,8 @@ Extras after phase 4: risky-order flag, product copy claims checker.
 - **Rails agents** do the thinking, using store tools through `shop_mcp_server`
   (from phase 2).
 - **The owner** approves in Telegram.
-- **Hosting:** Multipass VM on the laptop first, then Oracle Cloud Always Free.
+- **Hosting:** built locally with Docker Compose, rehearsed on a Multipass VM, then
+  run on Oracle Cloud Always Free (D8).
   n8n self-hosted in Docker, Kamal for the Rails app, Tailscale for SSH,
   Cloudflare Tunnel so Shopify webhooks can reach n8n.
 
@@ -95,5 +96,6 @@ Phase 2 must settle where the agents' store tools come from (Q1 in `DECISIONS.md
 
 ## Current status
 
-Phase 1, step 1.1: create the Multipass VM. Next: 1.2 Docker in the VM, 1.3 n8n with
-Docker Compose. Update this line as steps complete.
+Phase 1, step 1.3: n8n with Docker Compose, locally (1.1 done: Docker 29.9.3,
+Compose v5.7.1; 1.2 done: `.gitignore`, `.env.example`, `.env`). Multipass comes
+at 1.13. Update this line as steps complete.

@@ -10,8 +10,9 @@ went wrong. Notes come from doing the step, not from reading about it.
 
 ### Servers and containers
 
-- **Virtual machine vs container** (step 1.1): why the project uses a VM and runs
-  containers inside it.
+- **Virtual machine vs container** (step 1.13): a VM is a whole computer, a container is
+  one program in a sealed box. Why the server rehearsal uses a VM with containers inside.
+- **Running a server** (1.13, 1.14): SSH keys, `apt`, `systemd`, logs, firewall.
 - **Docker Compose** (1.3): describing a running service in a file.
 - **Volumes** (1.3): where a container's data lives when the container is replaced.
 - **Environment files and secrets** (1.3): what goes in `.env`, what goes in git.

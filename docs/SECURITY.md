@@ -44,13 +44,15 @@ documentation.
 | SSH listens only on the Tailscale address | 1.13, 1.14 |
 | Cloud firewall (Oracle security list) blocks all inbound | 1.14 |
 | Automatic security updates for the OS (`unattended-upgrades`) | 1.14 |
-| Newest Ubuntu LTS | 1.1, 1.14 |
+| Newest Ubuntu LTS | 1.13, 1.14 |
+| All server measures rehearsed first on a Multipass VM | 1.13 |
 
 **Docker gotcha:** a port published in Docker Compose as `5678:5678` opens on every
 network interface, and Docker writes its own firewall rules that bypass `ufw`. So a host
 firewall alone does not protect a published port. On the cloud server, either do not
 publish the port at all (the tunnel and Tailscale reach the container directly) or bind it
-to a specific address. (Step 1.3 for the VM, 1.14 for the cloud)
+to a specific address. Locally, bind it to `127.0.0.1` so nobody on the same Wi-Fi can
+reach the editor. (Step 1.3 locally, 1.13 to see the trap on purpose, 1.14 for the cloud)
 
 ## n8n
 
