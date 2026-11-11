@@ -1,0 +1,18 @@
+services:
+  n8n:
+    # Pinned to an exact stable release (rule D13). Upgrade by changing this tag on purpose.
+    image: docker.n8n.io/n8nio/n8n:2.47.4
+    # Come back after a crash or a reboot, but stay down after `docker compose stop`.
+    restart: unless-stopped
+    ports:
+      # laptop_address:laptop_port:container_port. 127.0.0.1 = this machine only.
+      - "127.0.0.1:5678:5678"
+    # Loads N8N_ENCRYPTION_KEY (and later secrets) from the untracked .env file.
+    env_file: .env
+    volumes:
+      # n8n keeps its database and settings here; the named volume outlives the container.
+      - n8n_data:/home/node/.n8n
+
+# Declares the named volume, so Docker creates and keeps it.
+volumes:
+  n8n_data:

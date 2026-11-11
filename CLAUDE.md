@@ -96,6 +96,6 @@ Phase 2 must settle where the agents' store tools come from (Q1 in `DECISIONS.md
 
 ## Current status
 
-Phase 1, step 1.3: n8n with Docker Compose, locally (1.1 done: Docker 29.9.3,
-Compose v5.7.1; 1.2 done: `.gitignore`, `.env.example`, `.env`). Multipass comes
-at 1.13. Update this line as steps complete.
+Phase 1, step 1.4: first Telegram message from n8n (1.1 to 1.3 done: Docker 29.9.3,
+Compose v5.7.1, n8n 2.47.4 running locally on 127.0.0.1:5678 with a named volume).
+Multipass comes at 1.13. Update this line as steps complete.

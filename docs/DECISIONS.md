@@ -78,6 +78,14 @@ offers out of the box, to be explored at that step.
 Stock going 4, 3, 2 sends three alerts for one problem. Decide whether phase 1 accepts
 that or remembers "already alerted for this product".
 
+### Q8: which database, self-hosted or managed? (phase 2)
+
+n8n uses SQLite by default: a single file inside its Docker volume. Phase 2 adds a Rails
+app that needs PostgreSQL. To decide: run PostgreSQL as a container in the same compose
+file with its own volume (free, backups are our job), or use a managed free tier (like
+Heroku Postgres, backups are theirs). Also whether n8n moves from SQLite to the same
+PostgreSQL (**confirm** what n8n's docs recommend for production).
+
 ## Things to confirm against current documentation
 
 Believed true from memory, not yet checked. Each gets checked at the step that uses it and
@@ -90,7 +98,9 @@ the answer recorded here with the date.
 | Header name of Shopify's per-delivery webhook ID | 1.9 | |
 | Shopify's webhook response time limit and retry policy | 1.11 | |
 | n8n self-hosted licence terms for this use | 1.3 | |
+| n8n's recommended image registry (`docker.n8n.io` vs Docker Hub) | 1.3 | Image 2.47.4 exists on both (checked 2026-11-11); which one the docs recommend not yet confirmed |
 | Oracle Cloud Always Free machine sizes and limits | 1.14 | |
 | Tailscale free plan limits | 1.13 | |
 | Gemini and Groq free tier limits | Phase 2 | |
+| How n8n sets the timezone for schedule triggers (containers run on UTC) | First schedule (daily brief, phase 2) | |
 | Telegram approval buttons in n8n, and how a paused run resumes | Phase 2 | |

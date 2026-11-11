@@ -1,6 +1,6 @@
 # Phase 1: Backbone (no AI)
 
-**Status:** in progress, started 2026-11-11. Current step: 1.3.
+**Status:** in progress, started 2026-11-11. Current step: 1.4.
 
 **Environment:** parts A to E run locally on the laptop, part F on a server.
 
@@ -63,7 +63,7 @@ in all three places. See D8 in [../DECISIONS.md](../DECISIONS.md).
     key.
   - Done when: `git status` does not show `.env`, and `.env.example` is committed.
 
-- [ ] **1.3 Run n8n with Docker Compose**
+- [x] **1.3 Run n8n with Docker Compose**
   - Goal: n8n running locally, with its data surviving a restart.
   - Build: a `docker-compose.yml` with one n8n service: the image pinned to the latest
     stable n8n version (not `latest`), port 5678 bound to `127.0.0.1` only, a named
@@ -220,7 +220,14 @@ _None yet._
 Every real problem hit, what the cause turned out to be, and how it was found. This is the
 most useful section for the post, so write it when it happens.
 
-_Nothing yet._
+- **2026-11-11, step 1.3: the encryption key leaked into a chat log.** While showing what
+  n8n keeps in its data folder, a command meant to print only the field names of
+  `/home/node/.n8n/config` failed to parse the file, and Node's error message quoted the
+  offending line, which was the key. Lesson: a command that touches a secret file must be
+  safe even when it fails, so read secrets only inside a `try` that prints nothing but a
+  yes or no. Fix: nothing had been encrypted yet, so the volume was deleted and a new
+  key generated. Also learned: n8n copies the key into `config` inside its volume, so
+  volume backups are secret too.
 
 ## Proof
 
@@ -230,3 +237,4 @@ Real runs only. If a number has not been measured, it does not go here.
 | --- | --- | --- |
 | 2026-11-11 | 1.1: `apt upgrade`, then checked versions and source | Docker Engine 29.9.3 and Compose v5.7.1, both from Docker's official stable apt repository (download.docker.com), installed version equals newest available |
 | 2026-11-11 | 1.2: `.gitignore`, `.env.example`, `.env` with a key from `openssl rand -hex 32` | `git status` lists `.gitignore` and `.env.example`, not `.env`. `.env` has permissions 600 (owner only) |
+| 2026-11-11 | 1.3: n8n `docker.n8n.io/n8nio/n8n:2.47.4` (npm `stable` and `latest` tags; 2.48.1 was beta), port bound to 127.0.0.1, named volume `n8n_data` | `docker compose ps` shows `127.0.0.1:5678->5678/tcp`, `/healthz` returns 200. Owner account created, then `down` and `up -d`: new container (17:17:59 UTC) on the volume from 17:10:50 UTC, n8n reports setup no longer needed, so the data survived |

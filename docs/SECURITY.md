@@ -64,7 +64,7 @@ reach the editor. (Step 1.3 locally, 1.13 to see the trap on purpose, 1.14 for t
 | Webhook signature (HMAC) checked before anything else runs | 1.8 |
 | Duplicate deliveries ignored | 1.9 |
 | Workflow exports checked for secrets before committing | 1.12 |
-| Backup of the n8n data volume, and a tested restore | 1.14 |
+| Backup of the n8n data volume, and a tested restore. Stop n8n or use SQLite's backup command first, since a live copy can miss changes still in `database.sqlite-wal`. The volume's `config` file holds the encryption key, so a backup is as secret as `.env` | 1.14 |
 
 ## Secrets
 
