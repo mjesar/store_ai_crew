@@ -1,6 +1,6 @@
 # Phase 1: Backbone (no AI)
 
-**Status:** in progress, started 2026-11-11. Current step: 1.5.
+**Status:** in progress, started 2026-11-11. Current step: 1.6.
 
 **Environment:** parts A to E run locally on the laptop, part F on a server.
 
@@ -94,7 +94,7 @@ in all three places. See D8 in [../DECISIONS.md](../DECISIONS.md).
 
 ### Part C: Shopify talks to n8n
 
-- [ ] **1.5 Dev store, API access and test products**
+- [x] **1.5 Dev store, API access and test products**
   - Goal: a store to test against and a token n8n can use.
   - Build: a Shopify development store with a few products that track inventory, and an
     app with Admin API access to read products and inventory.
@@ -223,7 +223,10 @@ docs/                   this documentation
 
 Short version here, full reasoning in [../DECISIONS.md](../DECISIONS.md).
 
-_None yet._
+- D16 (1.4): Slack is the owner channel.
+- D17 (1.5): Shopify access through a Dev Dashboard app, `Store AI Crew`, custom
+  distribution, scopes `read_products,read_inventory`, tokens from the client
+  credentials grant (24 hours each). Admin API version `2026-10`.
 
 ## What broke
 
@@ -252,6 +255,12 @@ most useful section for the post, so write it when it happens.
   source), moving to the server sooner, or Slack while on the laptop (D15). Store owners
   in Pakistan would hit the same block, which makes the WhatsApp extra more valuable.
 
+- **2026-11-12, step 1.5: an Admin API token was pasted into the chat.** The first
+  token request printed the whole JSON reply, token included, and it was copied into the
+  conversation to show it worked. Low risk (read only, dev store, expires within 24
+  hours), so it was left to expire. Lesson: capture tokens straight into a shell variable
+  (`TOKEN=$(curl ... | jq -r .access_token)`) so they never reach the screen.
+
 ## Proof
 
 Real runs only. If a number has not been measured, it does not go here.
@@ -262,3 +271,5 @@ Real runs only. If a number has not been measured, it does not go here.
 | 2026-11-11 | 1.2: `.gitignore`, `.env.example`, `.env` with a key from `openssl rand -hex 32` | `git status` lists `.gitignore` and `.env.example`, not `.env`. `.env` has permissions 600 (owner only) |
 | 2026-11-11 | 1.3: n8n `docker.n8n.io/n8nio/n8n:2.47.4` (npm `stable` and `latest` tags; 2.48.1 was beta), port bound to 127.0.0.1, named volume `n8n_data` | `docker compose ps` shows `127.0.0.1:5678->5678/tcp`, `/healthz` returns 200. Owner account created, then `down` and `up -d`: new container (17:17:59 UTC) on the volume from 17:10:50 UTC, n8n reports setup no longer needed, so the data survived |
 | 2026-11-12 | 1.4: Slack app `Store AI Crew` (bot scope `chat:write` only) invited to `#store-alerts`; n8n credential "Slack API" with the bot token; workflow `Slack test` = Manual Trigger, then Slack "Send a message" to the channel by ID | Message "Hello from n8n" posted by Store AI Crew in `#store-alerts` at 1:40 AM local time. n8n appended its default footer "Automated with this n8n workflow" |
+| 2026-11-12 | 1.5 (part): reused dev store `test-store-plus-9eiwvuh4` (created from the Dev Dashboard, so it is in the same organization as the app). Track quantity on for 4 products | The Collection Snowboard: Liquid (`8559152267425`) 10, The Compare at Price Snowboard (`8559152005281`) 5, The 3p Fulfilled Snowboard (`8559152201889`) 20, The Collection Snowboard: Hydrogen (`8559151841441`) 3 |
+| 2026-11-12 | 1.5: Dev Dashboard app `Store AI Crew` (custom distribution, scopes `read_products,read_inventory`, no redirect URLs, not embedded) installed on the store. Token from the client credentials grant, then a GraphQL `products(first: 10)` query on Admin API `2026-10` with `curl` | Token reply: `scope` `read_inventory,read_products`, `expires_in` 86399. Query returned 10 products with `totalInventory`, `tracksInventory` and inventory item IDs, including Hydrogen (3) and Compare at Price (5). Query cost 26 of 20000 available. Note: most sample products also track stock, some at 0 |

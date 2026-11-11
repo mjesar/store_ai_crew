@@ -104,6 +104,29 @@ went wrong. Notes come from doing the step, not from reading about it.
 - **Error workflows and retries** (1.11).
 - **Exporting workflows** (1.12): what is and is not in the JSON.
 
+### Shopify access
+
+- **A Shopify "app" with no code** (1.5): in the Dev Dashboard an app is a registration,
+  not a program. It holds an identity (client ID and secret), permissions (scopes) and an
+  install record (the store owner approved those scopes on this store). Nothing runs on
+  Shopify. The code that uses it is ours: `curl` on the laptop now, n8n in phase 1, the
+  Rails agents later. Shopify also uses it the other way round, signing webhooks with the
+  app's secret. The App Store apps built before were different: they had a page inside
+  the admin and needed hosting, which is why this one's app URL is just a placeholder.
+- **Client credentials grant** (1.5): the app proves who it is with its client ID and
+  secret and gets an Admin API token back, with no user, no browser and no redirect. It
+  only works for stores in the app's own Dev Dashboard organization. The token lasts 24
+  hours and there is no refresh token, because asking again with the ID and secret *is*
+  the refresh. So the ID and secret are the real secrets; a token is short-lived and
+  cheap to replace. The surprise: the product_geo_agent notes from earlier in 2026
+  describe a manual OAuth dance (redirect to example.com, copy a code from the URL bar,
+  swap it for a token) that this replaces entirely.
+- **Scopes match the data model** (1.5): stock is not on the product. A product has
+  variants, each variant has an inventory item, and the inventory item has a quantity per
+  location. So reading stock needs `read_inventory`, and naming the product in an alert
+  needs `read_products`. The webhook at 1.7 only carries the inventory item ID, which is
+  why the query asks for `inventoryItem { id }`.
+
 ### Webhooks
 
 - **What a webhook is** (1.7): the store calls you, you do not ask the store.
