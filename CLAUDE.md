@@ -40,9 +40,24 @@ Extras after phase 4: risky-order flag, product copy claims checker.
 - **Rails agents** do the thinking, using store tools through `shop_mcp_server`
   (from phase 2).
 - **The owner** approves in Telegram.
-- **Hosting:** Multipass VM on the laptop first, then Oracle Cloud Always Free.
+- **Hosting:** built locally with Docker Compose, rehearsed on a Multipass VM, then
+  run on Oracle Cloud Always Free (D8).
   n8n self-hosted in Docker, Kamal for the Rails app, Tailscale for SSH,
   Cloudflare Tunnel so Shopify webhooks can reach n8n.
+
+## Versions: latest stable, always (Mohammad, 2026-11-11)
+
+Use the newest stable release of everything: Ruby, Rails, Docker, n8n, Ubuntu, gems,
+images. Look the current version up at the step that installs it (release page or
+registry), never from memory. For the server OS, stable means the newest Ubuntu LTS.
+Pin the exact version that was installed (image tags, Gemfile.lock), never a floating
+tag like `latest`, so a rebuild gives the same result. Record the versions used in the
+phase page.
+
+## Security
+
+`docs/SECURITY.md` is the plan. Each measure names the step that builds it; do it at
+that step.
 
 ## Constraints
 
@@ -81,5 +96,6 @@ Phase 2 must settle where the agents' store tools come from (Q1 in `DECISIONS.md
 
 ## Current status
 
-Phase 1, step 1.1: create the Multipass VM. Next: 1.2 Docker in the VM, 1.3 n8n with
-Docker Compose. Update this line as steps complete.
+Phase 1, step 1.4: first Telegram message from n8n (1.1 to 1.3 done: Docker 29.9.3,
+Compose v5.7.1, n8n 2.47.4 running locally on 127.0.0.1:5678 with a named volume).
+Multipass comes at 1.13. Update this line as steps complete.

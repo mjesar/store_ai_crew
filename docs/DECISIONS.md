@@ -15,10 +15,12 @@ then move up into the decisions table.
 | D5 | 2026-11-11 | Nothing is written to the store or sent outside without the owner's approval. | An agent that drafts is useful on day one. An agent that acts alone has to earn it with numbers, which is what phase 4 produces. |
 | D6 | 2026-11-11 | Code does the math, the model writes the words. | Models are unreliable at arithmetic. Thresholds, sales speed and pass rates are computed and passed in. |
 | D7 | 2026-11-11 | Free tiers only. | It is a learning and portfolio project. It also means a reader can run all of it at no cost. |
-| D8 | 2026-11-11 | Local Multipass VM first, cloud machine second. | Free, disposable and fast to rebuild while learning. Because it is a separate machine, the steps transfer to the cloud unchanged. |
+| D8 | 2026-11-11 (revised same day) | Build phase 1 locally with Docker Compose, then rehearse the server on a Multipass VM, then run it on Oracle Cloud. | First plan was the VM from the start. Changed because n8n and webhooks are learned the same way locally, with one less layer and less memory. The VM is kept as a rehearsal right before Oracle, where server mistakes such as an SSH lockout are free, and as the target for the first Kamal deploy in phase 2. It is also the fallback if Oracle has no free capacity. |
 | D9 | 2026-11-11 | Telegram for alerts and approvals. | Free, on the phone, and supports buttons. Slack was the alternative and can be added later. |
 | D10 | 2026-11-11 | Learning mode: Mohammad writes all code and config, guided one step at a time. | The point is to be able to explain and rebuild every part. |
 | D11 | 2026-11-11 | n8n workflows are exported as JSON and committed. | Otherwise the real work lives only in n8n's database and the repo shows nothing. |
+| D13 | 2026-11-11 | Latest stable version of everything, looked up at install time and pinned exactly. Newest LTS for Ubuntu. | Mohammad's choice: learn current tools, not outdated ones. Pinning keeps rebuilds identical, so an upgrade is a deliberate step. |
+| D14 | 2026-11-11 | Almost nothing faces the internet: only the webhook path, through Cloudflare Tunnel. Editor and SSH over Tailscale only. | The editor holds every credential. See [SECURITY.md](SECURITY.md). |
 | D12 | 2026-11-11 | Competitors for the mystery shopper idea were not researched. | This is for portfolio and learning, so whether a product already exists does not change the plan. |
 
 ## Open questions
@@ -76,6 +78,14 @@ offers out of the box, to be explored at that step.
 Stock going 4, 3, 2 sends three alerts for one problem. Decide whether phase 1 accepts
 that or remembers "already alerted for this product".
 
+### Q8: which database, self-hosted or managed? (phase 2)
+
+n8n uses SQLite by default: a single file inside its Docker volume. Phase 2 adds a Rails
+app that needs PostgreSQL. To decide: run PostgreSQL as a container in the same compose
+file with its own volume (free, backups are our job), or use a managed free tier (like
+Heroku Postgres, backups are theirs). Also whether n8n moves from SQLite to the same
+PostgreSQL (**confirm** what n8n's docs recommend for production).
+
 ## Things to confirm against current documentation
 
 Believed true from memory, not yet checked. Each gets checked at the step that uses it and
@@ -88,7 +98,9 @@ the answer recorded here with the date.
 | Header name of Shopify's per-delivery webhook ID | 1.9 | |
 | Shopify's webhook response time limit and retry policy | 1.11 | |
 | n8n self-hosted licence terms for this use | 1.3 | |
+| n8n's recommended image registry (`docker.n8n.io` vs Docker Hub) | 1.3 | Image 2.47.4 exists on both (checked 2026-11-11); which one the docs recommend not yet confirmed |
 | Oracle Cloud Always Free machine sizes and limits | 1.14 | |
 | Tailscale free plan limits | 1.13 | |
 | Gemini and Groq free tier limits | Phase 2 | |
+| How n8n sets the timezone for schedule triggers (containers run on UTC) | First schedule (daily brief, phase 2) | |
 | Telegram approval buttons in n8n, and how a paused run resumes | Phase 2 | |

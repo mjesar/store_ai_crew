@@ -77,8 +77,9 @@ phase 2. That is on purpose: the plumbing has to be trustworthy before an agent 
                  store tools (MCP)          LLM (Gemini or Groq free tier)
 ```
 
-Everything in the two boxes runs on one self-hosted server: a Multipass virtual machine on
-the laptop first, then an Oracle Cloud Always Free machine.
+Everything in the two boxes runs in Docker Compose. It is built locally on the laptop,
+rehearsed on a Multipass virtual machine, then run on an Oracle Cloud Always Free machine.
+The same compose file is used in all three places.
 
 **The split, and why:**
 
@@ -102,7 +103,8 @@ the laptop first, then an Oracle Cloud Always Free machine.
 | Agents | Ruby on Rails (phase 2 onward) | Main language, reuses earlier agent code |
 | LLM | Gemini or Groq free tier | Free, both already used in earlier projects |
 | Store tools | MCP, via shop_mcp_server or Shopify's own endpoints | See open question Q1 in [DECISIONS.md](DECISIONS.md) |
-| Server, local | Multipass VM (Ubuntu) | Free, behaves like a real remote server |
+| Development | Docker Compose on the laptop | Already installed, fastest way to learn n8n and webhooks |
+| Server rehearsal | Multipass VM (Ubuntu LTS) | Free, behaves like a real remote server, mistakes cost nothing |
 | Server, cloud | Oracle Cloud Always Free | Free, always on |
 | Deploy | Docker Compose for n8n, Kamal for the Rails app | Kamal is the Rails 8 default |
 | Public URL for webhooks | Cloudflare Tunnel | Shopify needs an HTTPS address to call |
