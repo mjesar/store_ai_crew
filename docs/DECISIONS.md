@@ -23,6 +23,7 @@ then move up into the decisions table.
 | D14 | 2026-11-11 | Almost nothing faces the internet: only the webhook path, through Cloudflare Tunnel. Editor and SSH over Tailscale only. | The editor holds every credential. See [SECURITY.md](SECURITY.md). |
 | D15 | 2026-11-11 (channel order updated by D16) | Telegram first. Other channels (WhatsApp, Slack, Teams) are extras after phase 4. Every workflow keeps the owner channel as its last step, so adding a channel means swapping one node, not redesigning. | Compared Telegram, Slack, Discord, WhatsApp, email, SMS, push apps and Teams. Telegram is free, needs no business verification and has approval buttons, so time goes into learning n8n, not platform setup. WhatsApp is what real store owners use, so it is the most valuable extra. |
 | D16 | 2026-11-11 | Slack is the owner channel for phases 1 and 2. Teams, Telegram (from the server outside Pakistan) and WhatsApp are extras. | Telegram's bot API is blocked from Pakistan (PTA-directed, on major providers), and Mohammad ruled out VPN software. Slack needs no workaround, is free, has approval buttons, and is what small businesses and freelance n8n clients use, so it is the stronger portfolio choice. Teams fits corporate clients but needs a Microsoft 365 setup, so it comes later as a second channel. The bot `@mjesar_store_crew_bot` is kept for the Telegram extra. |
+| D17 | 2026-11-12 | Shopify access through a new Dev Dashboard app, `Store AI Crew`, with custom distribution and only `read_products,read_inventory`. Tokens come from the client credentials grant. Admin API version `2026-10` (latest stable on 2026-11-12). | Since 2026-01-01 apps can no longer be created in the store admin; Dev Dashboard apps acting on stores in their own organization use the client credentials grant (client ID and secret in, token out, no redirect). A new app instead of reusing product_geo_agent's: that token only has Storefront scopes, a separate app keeps each project's secret and scopes separate, and this app's secret signs the webhooks checked at 1.8. Custom, not public: it only acts on one store, and public distribution cannot be undone. Write scopes come in phase 2 (SECURITY.md). |
 | D12 | 2026-11-11 | Competitors for the mystery shopper idea were not researched. | This is for portfolio and learning, so whether a product already exists does not change the plan. |
 
 ## Open questions
@@ -88,6 +89,19 @@ file with its own volume (free, backups are our job), or use a managed free tier
 Heroku Postgres, backups are theirs). Also whether n8n moves from SQLite to the same
 PostgreSQL (**confirm** what n8n's docs recommend for production).
 
+### Q9: how does n8n get its Shopify token? (step 1.10)
+
+Tokens from the client credentials grant last 24 hours and there is no refresh token: you
+ask again with the client ID and secret. Options:
+
+1. Each run starts with an HTTP Request node that asks for a fresh token, and the next
+   node uses it. One extra call per run, never stale, easy to see in the execution log.
+2. n8n's generic OAuth2 credential with the client credentials grant, which fetches and
+   renews tokens by itself. **Confirm** whether n8n can send the token in Shopify's
+   `X-Shopify-Access-Token` header (or Shopify accepts `Authorization: Bearer`).
+
+Leaning to option 1. Either way it is automatic; nobody renews tokens by hand.
+
 ## Things to confirm against current documentation
 
 Believed true from memory, not yet checked. Each gets checked at the step that uses it and
@@ -95,7 +109,7 @@ the answer recorded here with the date.
 
 | What | Used at | Confirmed |
 | --- | --- | --- |
-| How a dev store app gets an Admin API token today | 1.5 | |
+| How a dev store app gets an Admin API token today | 1.5 | 2026-11-12, shopify.dev ("Authenticate an app for stores in your organization"): a Dev Dashboard app uses the client credentials grant, `POST https://{shop}.myshopify.com/admin/oauth/access_token` with `grant_type=client_credentials`, `client_id`, `client_secret`. Token valid 24 hours (`expires_in` 86399), no refresh token. Only for stores in the same Dev Dashboard organization (else `shop_not_permitted`); a dev store made from the Shopify admin is not in it. Scopes: `read_products,read_inventory`. Verified with a real call |
 | Cloudflare Tunnel free terms, quick tunnel vs named tunnel | 1.6 | |
 | Header name of Shopify's per-delivery webhook ID | 1.9 | |
 | Shopify's webhook response time limit and retry policy | 1.11 | |

@@ -97,9 +97,11 @@ Phase 2 must settle where the agents' store tools come from (Q1 in `DECISIONS.md
 
 ## Current status
 
-Phase 1, step 1.5: Shopify development store and Admin API access. Steps 1.1 to 1.4
+Phase 1, step 1.6: public HTTPS address for n8n (Cloudflare Tunnel). Steps 1.1 to 1.5
 done (n8n 2.47.4 on 127.0.0.1:5678; workflow `Slack test` posts to `#store-alerts` via
 the Slack app `Store AI Crew`, bot scope `chat:write` only, channel by ID, token in n8n's
-credential store). Mohammad has no password
+credential store; Dev Dashboard app `Store AI Crew` on dev store `test-store-plus-9eiwvuh4`,
+scopes `read_products,read_inventory`, 24 hour tokens from the client credentials grant,
+Admin API `2026-10`). Mohammad has no password
 manager yet (Bitwarden suggested), so the encryption key in `.env` has no backup.
 Multipass comes at 1.13. Update this line as steps complete.
