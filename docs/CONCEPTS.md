@@ -61,15 +61,44 @@ went wrong. Notes come from doing the step, not from reading about it.
   - Never overwrite an existing key: n8n's saved credentials are encrypted with it,
     and a new key cannot read them. Keep a copy in a password manager.
 
-  Why the key exists: n8n stores tokens (Telegram, Shopify) in its database, encrypted
+  Why the key exists: n8n stores tokens (Slack, Shopify) in its database, encrypted
   with this key. The database alone is useless to a thief. The database plus the key
   gives everything, so they are kept apart.
 
 ### n8n
 
 - **Workflow, node, execution** (1.4): the three words everything else builds on.
-- **Credentials and the encryption key** (1.3, 1.4): how n8n stores secrets, and what
-  happens if the key is lost.
+  - A **workflow** is the whole recipe, drawn as boxes joined by lines. `Slack test` is
+    one.
+  - A **node** is one box: one job. Every workflow starts with a **trigger node** (what
+    makes it run: a click, a webhook, a schedule) followed by action nodes (send a
+    Slack message, call an API). Data flows along the lines from one node to the next.
+  - An **execution** is one run of a workflow. n8n records each one in the Executions
+    tab: when it ran, whether it succeeded, and what data passed through every node.
+    That log is the first place to look when something goes wrong.
+
+- **Credentials** (1.4): how n8n holds a secret it needs to call another service.
+  - The Slack bot token is saved once as a credential and nodes refer to it by name.
+    The token never appears inside the workflow, so a workflow can be exported and
+    shared (step 1.12) without leaking it.
+  - n8n encrypts saved credentials with `N8N_ENCRYPTION_KEY` from `.env`. Lose the key
+    and every saved credential has to be entered again.
+  - The token is pasted straight from Slack into n8n and kept out of `.env`, because
+    `env_file` hands everything in `.env` to the container as plain environment
+    variables.
+
+- **Two directions, two secrets** (1.4): the Slack credential has two fields.
+  - The **access token** (`xoxb-...`) is for n8n calling Slack. It proves n8n may post
+    as the bot.
+  - The **signing secret** is for Slack calling n8n. Slack signs each request with it,
+    and n8n checks the signature, so nobody can pretend to be Slack. It is left empty
+    until phase 2, when the Approve button makes Slack call n8n. Same idea as the
+    Shopify HMAC check at step 1.8.
+
+- **Bot token scopes, fewest first** (1.4): the bot has only `chat:write`, so all it
+  can do is post in channels it has been invited to. That is why the channel is given
+  **by ID** in the Slack node: picking it from a list would need an extra read scope
+  (`channels:read`). A stolen token with one scope can do little damage.
 - **Trigger nodes** (1.4, 1.7): manual, webhook, schedule.
 - **Test URL vs production URL** (1.7): why a webhook node has two addresses.
 - **Error workflows and retries** (1.11).

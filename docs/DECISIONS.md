@@ -16,11 +16,13 @@ then move up into the decisions table.
 | D6 | 2026-11-11 | Code does the math, the model writes the words. | Models are unreliable at arithmetic. Thresholds, sales speed and pass rates are computed and passed in. |
 | D7 | 2026-11-11 | Free tiers only. | It is a learning and portfolio project. It also means a reader can run all of it at no cost. |
 | D8 | 2026-11-11 (revised same day) | Build phase 1 locally with Docker Compose, then rehearse the server on a Multipass VM, then run it on Oracle Cloud. | First plan was the VM from the start. Changed because n8n and webhooks are learned the same way locally, with one less layer and less memory. The VM is kept as a rehearsal right before Oracle, where server mistakes such as an SSH lockout are free, and as the target for the first Kamal deploy in phase 2. It is also the fallback if Oracle has no free capacity. |
-| D9 | 2026-11-11 | Telegram for alerts and approvals. | Free, on the phone, and supports buttons. Slack was the alternative and can be added later. |
+| D9 | 2026-11-11 (replaced by D16) | Telegram for alerts and approvals. | Free, on the phone, and supports buttons. Slack was the alternative and can be added later. |
 | D10 | 2026-11-11 | Learning mode: Mohammad writes all code and config, guided one step at a time. | The point is to be able to explain and rebuild every part. |
 | D11 | 2026-11-11 | n8n workflows are exported as JSON and committed. | Otherwise the real work lives only in n8n's database and the repo shows nothing. |
 | D13 | 2026-11-11 | Latest stable version of everything, looked up at install time and pinned exactly. Newest LTS for Ubuntu. | Mohammad's choice: learn current tools, not outdated ones. Pinning keeps rebuilds identical, so an upgrade is a deliberate step. |
 | D14 | 2026-11-11 | Almost nothing faces the internet: only the webhook path, through Cloudflare Tunnel. Editor and SSH over Tailscale only. | The editor holds every credential. See [SECURITY.md](SECURITY.md). |
+| D15 | 2026-11-11 (channel order updated by D16) | Telegram first. Other channels (WhatsApp, Slack, Teams) are extras after phase 4. Every workflow keeps the owner channel as its last step, so adding a channel means swapping one node, not redesigning. | Compared Telegram, Slack, Discord, WhatsApp, email, SMS, push apps and Teams. Telegram is free, needs no business verification and has approval buttons, so time goes into learning n8n, not platform setup. WhatsApp is what real store owners use, so it is the most valuable extra. |
+| D16 | 2026-11-11 | Slack is the owner channel for phases 1 and 2. Teams, Telegram (from the server outside Pakistan) and WhatsApp are extras. | Telegram's bot API is blocked from Pakistan (PTA-directed, on major providers), and Mohammad ruled out VPN software. Slack needs no workaround, is free, has approval buttons, and is what small businesses and freelance n8n clients use, so it is the stronger portfolio choice. Teams fits corporate clients but needs a Microsoft 365 setup, so it comes later as a second channel. The bot `@mjesar_store_crew_bot` is kept for the Telegram extra. |
 | D12 | 2026-11-11 | Competitors for the mystery shopper idea were not researched. | This is for portfolio and learning, so whether a product already exists does not change the plan. |
 
 ## Open questions
@@ -103,4 +105,5 @@ the answer recorded here with the date.
 | Tailscale free plan limits | 1.13 | |
 | Gemini and Groq free tier limits | Phase 2 | |
 | How n8n sets the timezone for schedule triggers (containers run on UTC) | First schedule (daily brief, phase 2) | |
-| Telegram approval buttons in n8n, and how a paused run resumes | Phase 2 | |
+| Slack approval buttons in n8n, and how a paused run resumes | Phase 2 | |
+| Slack free plan limits (message history, number of apps) | 1.4 | |

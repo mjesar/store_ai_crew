@@ -34,7 +34,7 @@ Two parts do the work:
 
 | Phase | What it adds | Status |
 | --- | --- | --- |
-| 1. Backbone | Self-hosted n8n, Shopify webhooks, Telegram alerts, one low-stock workflow. No AI yet. | In progress |
+| 1. Backbone | Self-hosted n8n, Shopify webhooks, Slack alerts, one low-stock workflow. No AI yet. | In progress |
 | 2. Ops agent | An agent drafts a supplier reorder or a review reply, the owner approves from the phone. | Planned |
 | 3. AI mystery shopper | AI shoppers test the store every night, a second agent drafts fixes, the same shoppers run again to prove the fix. | Planned |
 | 4. Proof page | Pass rate over time, cost per run, traces, and two models compared. | Planned |
@@ -44,7 +44,7 @@ recovers from failures has to be trusted before an agent depends on it.
 
 ## Built on free tiers
 
-Shopify development store, self-hosted n8n, a Telegram bot, a free LLM tier, a local
+Shopify development store, self-hosted n8n, a free Slack workspace, a free LLM tier, a local
 virtual machine and then a free cloud machine. The aim is that anyone can run all of it at
 no cost.
 

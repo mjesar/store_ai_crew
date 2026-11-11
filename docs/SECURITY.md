@@ -14,7 +14,7 @@ documentation.
 | Shopify Admin API token | Can read and change the store |
 | n8n editor and its credentials | Holds every token in one place |
 | `N8N_ENCRYPTION_KEY` | Decrypts n8n's saved credentials |
-| Telegram bot token | Whoever has it can impersonate the bot |
+| Slack bot token | Whoever has it can post as the bot in the workspace |
 | The approval step | The one thing that stops an agent acting alone |
 
 ## The main rule: almost nothing faces the internet
@@ -82,11 +82,14 @@ reach the editor. (Step 1.3 locally, 1.13 to see the trap on purpose, 1.14 for t
   Write scopes are added only in the phase that needs them, and recorded in DECISIONS.md.
   (Step 1.5)
 
-## Telegram
+## Slack
 
-- The workflow only sends to, and only accepts button presses from, the owner's chat ID.
-  Anyone else who finds the bot gets nothing. (Step 1.4, and phase 2 for approvals)
-- The bot token is a secret like any other.
+- The Slack app gets the fewest scopes that work (posting messages to start). Each new
+  scope is added in the step that needs it and recorded in DECISIONS.md. (Step 1.4)
+- The bot token is a secret like any other, stored only in n8n's credential store.
+- The workspace is private, with only the owner as a member. In phase 2, approvals are
+  accepted only from the owner's Slack user ID, and Slack's request signature is
+  checked on button presses. (Phase 2)
 
 ## Agents (phase 2 onward)
 

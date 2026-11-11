@@ -6,7 +6,7 @@ the page for the current phase.
 | Page | What it is for |
 | --- | --- |
 | [PROJECT_PLAN.md](PROJECT_PLAN.md) | The whole project: purpose, scope test, example scenario, architecture, stack, the four phases, extras. |
-| [phases/01-backbone.md](phases/01-backbone.md) | Phase 1 step by step: server, n8n, Shopify webhook, Telegram alert. Checklist, decisions, what broke, proof. |
+| [phases/01-backbone.md](phases/01-backbone.md) | Phase 1 step by step: server, n8n, Shopify webhook, Slack alert. Checklist, decisions, what broke, proof. |
 | [DECISIONS.md](DECISIONS.md) | Every decision with its reason, the open questions, and the facts still to confirm. |
 | [SECURITY.md](SECURITY.md) | What faces the internet and what does not, and each security measure with the step that builds it. |
 | [CONCEPTS.md](CONCEPTS.md) | Learning notes, one per idea, written when the idea is first met. |
