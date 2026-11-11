@@ -1,0 +1,4 @@
+# Secrets: real values live only in .env, never in git
+.env
+.env.*
+!.env.example
