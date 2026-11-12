@@ -1,5 +1,4 @@
 tunnel: 48bdbbd9-e1c4-4eaf-9605-ff0ec1cd3894
-credentials-file: /etc/cloudflared/credentials.json
 ingress:
   - hostname: hooks.mjesar.dpdns.org
     path: ^/webhook/

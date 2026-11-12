@@ -12,6 +12,20 @@ services:
     volumes:
       # n8n keeps its database and settings here; the named volume outlives the container.
       - n8n_data:/home/node/.n8n
+  cloudflared:
+    # Pinned to an exact stable release, like n8n (D13). Has amd64 (laptop) and arm64 (Oracle) builds.
+    image: cloudflare/cloudflared:2026.11.0
+    # Comes back at boot together with n8n, so the public address is never left dead.
+    restart: unless-stopped
+    # The image only runs `cloudflared version` by default. Run the tunnel with our rules file;
+    # no tunnel name needed, because TUNNEL_TOKEN says which tunnel this is.
+    command: ["tunnel", "--config", "/etc/cloudflared/config.yml", "run"]
+    volumes:
+      # The tunnel's routing rules from the repo. Read-only: the container can't change them.
+      - ./cloudflared/config.yml:/etc/cloudflared/config.yml:ro
+    # Only the tunnel's token from .env (D19), not the whole file: this container needs nothing else.
+    environment:
+      TUNNEL_TOKEN: ${TUNNEL_TOKEN}
 
 # Declares the named volume, so Docker creates and keeps it.
 volumes:
