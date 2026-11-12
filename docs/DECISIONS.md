@@ -24,6 +24,7 @@ then move up into the decisions table.
 | D15 | 2026-11-11 (channel order updated by D16) | Telegram first. Other channels (WhatsApp, Slack, Teams) are extras after phase 4. Every workflow keeps the owner channel as its last step, so adding a channel means swapping one node, not redesigning. | Compared Telegram, Slack, Discord, WhatsApp, email, SMS, push apps and Teams. Telegram is free, needs no business verification and has approval buttons, so time goes into learning n8n, not platform setup. WhatsApp is what real store owners use, so it is the most valuable extra. |
 | D16 | 2026-11-11 | Slack is the owner channel for phases 1 and 2. Teams, Telegram (from the server outside Pakistan) and WhatsApp are extras. | Telegram's bot API is blocked from Pakistan (PTA-directed, on major providers), and Mohammad ruled out VPN software. Slack needs no workaround, is free, has approval buttons, and is what small businesses and freelance n8n clients use, so it is the stronger portfolio choice. Teams fits corporate clients but needs a Microsoft 365 setup, so it comes later as a second channel. The bot `@mjesar_store_crew_bot` is kept for the Telegram extra. |
 | D17 | 2026-11-12 | Shopify access through a new Dev Dashboard app, `Store AI Crew`, with custom distribution and only `read_products,read_inventory`. Tokens come from the client credentials grant. Admin API version `2026-10` (latest stable on 2026-11-12). | Since 2026-01-01 apps can no longer be created in the store admin; Dev Dashboard apps acting on stores in their own organization use the client credentials grant (client ID and secret in, token out, no redirect). A new app instead of reusing product_geo_agent's: that token only has Storefront scopes, a separate app keeps each project's secret and scopes separate, and this app's secret signs the webhooks checked at 1.8. Custom, not public: it only acts on one store, and public distribution cannot be undone. Write scopes come in phase 2 (SECURITY.md). |
+| D18 | 2026-11-12 | Public webhook address: free domain `mjesar.dpdns.org` (DigitalPlat FreeDomain), DNS on Cloudflare's free plan, named Cloudflare Tunnel with `cloudflared` as a service in the compose file. Webhooks at `hooks.mjesar.dpdns.org`. Answers Q5. | No domain was owned, and a paid one breaks "free tiers only" (D7). Compared: Cloudflare quick tunnel (free, but a new address on every restart, so the Shopify webhook is re-registered each time, and no config to hide the editor); ngrok free dev domain (stable, but one domain and 20,000 requests a month shared by every project, plus a browser warning page); a free DigitalPlat domain on Cloudflare (stable, path rules, unlimited subdomains for other projects). `dpdns.org` is on the Public Suffix List, so Cloudflare treats `mjesar.dpdns.org` as a domain of its own (`qd.je` is not, so it was avoided). One free domain per account, so it is named after Mohammad, not this project. Risks: one person runs DigitalPlat for free and could change terms (`.us.kg` registrations are already paused); free domains are distrusted by some filters. Fallback: ngrok's free dev domain, or a paid domain; either way one compose service and one webhook URL change. **Expires 2027-11-11; free renewal opens 120 days before (about 2027-07-14).** |
 | D12 | 2026-11-11 | Competitors for the mystery shopper idea were not researched. | This is for portfolio and learning, so whether a product already exists does not change the plan. |
 
 ## Open questions
@@ -64,13 +65,6 @@ endpoint, catalog API, or neither), and whether ai_shop_assistant's approach sti
 Same repo as the n8n config (in a subfolder or at the root), or its own repo. Affects how
 Kamal and Compose share one server.
 
-### Q5: what public address do the webhooks use? (phase 1, step 1.6)
-
-A free quick tunnel address changes on restart, which means re-registering the Shopify
-webhook each time. A stable address needs a domain on Cloudflare. To decide: use an
-existing domain, accept the changing address during phase 1, or use another free option
-with a stable name.
-
 ### Q6: where does n8n remember handled events? (phase 1, step 1.9)
 
 Duplicate protection needs somewhere to store event IDs. Options depend on what n8n
@@ -110,7 +104,9 @@ the answer recorded here with the date.
 | What | Used at | Confirmed |
 | --- | --- | --- |
 | How a dev store app gets an Admin API token today | 1.5 | 2026-11-12, shopify.dev ("Authenticate an app for stores in your organization"): a Dev Dashboard app uses the client credentials grant, `POST https://{shop}.myshopify.com/admin/oauth/access_token` with `grant_type=client_credentials`, `client_id`, `client_secret`. Token valid 24 hours (`expires_in` 86399), no refresh token. Only for stores in the same Dev Dashboard organization (else `shop_not_permitted`); a dev store made from the Shopify admin is not in it. Scopes: `read_products,read_inventory`. Verified with a real call |
-| Cloudflare Tunnel free terms, quick tunnel vs named tunnel | 1.6 | |
+| Cloudflare Tunnel free terms, named tunnel path rules, card for Zero Trust | 1.6 | 2026-11-12: activating Zero Trust Free (needed to create a tunnel in the dashboard) asks for a card or PayPal, $0/month but "additional usage beyond included allowance billed monthly". Not entered. Next: try a locally-managed tunnel from the CLI (`cloudflared tunnel login` / `create`, `config.yml` ingress with path rules and a 404 catch-all, per Cloudflare docs). Whether the CLI route also needs a card is unconfirmed |
+| ngrok free plan (fallback, D18) | 1.6 | 2026-11-12, ngrok docs: 1 dev domain per account, up to 3 agents and 3 endpoints online, per month 20,000 HTTP requests and 1 GB out, browser warning page only for HTML traffic. Not used |
+| DigitalPlat FreeDomain terms | 1.6 | 2026-11-12: 1 free domain per account (FAQ); `dpdns.org`, `us.kg`, `xx.kg`, `qzz.io` on the Public Suffix List, `qd.je` not; `mjesar.dpdns.org` registered 2026-11-11 (their date), expires 2027-11-11, free renewal within 120 days of expiry. Despite the FAQ, the account got two: `goatstar.dpdns.org` too (same dates), kept spare |
 | Header name of Shopify's per-delivery webhook ID | 1.9 | |
 | Shopify's webhook response time limit and retry policy | 1.11 | |
 | n8n self-hosted licence terms for this use | 1.3 | |

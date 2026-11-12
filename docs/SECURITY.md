@@ -29,10 +29,18 @@ documentation.
                 webhook path only  -->  n8n on the server
 ```
 
-- **No open inbound ports.** A Cloudflare Tunnel connects outward from the server, so the
-  server firewall can block all incoming traffic. (Step 1.6, 1.14)
-- **Only the webhook path is public.** The tunnel forwards only n8n's webhook URLs, not the
-  editor. **Confirm** that tunnel ingress rules can filter by path. (Step 1.6)
+- **No open inbound ports.** `cloudflared` connects outward from the server, so the
+  server firewall can block all incoming traffic. (Step 1.6, 1.14; D18)
+- **Only the webhook path is public.** The tunnel forwards only n8n's webhook URLs (and
+  `/healthz`), not the editor. **Confirm** that tunnel ingress rules can filter by path.
+  (Step 1.6)
+- **The Cloudflare account controls the public address.** Two-factor authentication on
+  it, and on the DigitalPlat account that holds the domain. (Step 1.6)
+  Gap (2026-11-12): two-factor could not be set on DigitalPlat. Until it can, the
+  DigitalPlat password is unique and the sign-up email account has two-factor, since that
+  email can reset the password. Check again later.
+  To do before step 1.7: two-factor on Cloudflare (Mobile App Authentication, recovery
+  codes saved off the laptop). Postponed on 2026-11-12, not yet on.
 - **The editor and SSH are reachable only over Tailscale**, a private network between your
   own devices. (Step 1.13)
 

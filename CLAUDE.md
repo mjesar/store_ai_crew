@@ -44,7 +44,8 @@ Extras after phase 4: risky-order flag, product copy claims checker.
 - **Hosting:** built locally with Docker Compose, rehearsed on a Multipass VM, then
   run on Oracle Cloud Always Free (D8).
   n8n self-hosted in Docker, Kamal for the Rails app, Tailscale for SSH,
-  Cloudflare Tunnel so Shopify webhooks can reach n8n.
+  Cloudflare Tunnel on the free domain `mjesar.dpdns.org` (`cloudflared` as a compose
+  service) so Shopify webhooks can reach n8n (D18).
 
 ## Versions: latest stable, always (Mohammad, 2026-11-11)
 
@@ -63,7 +64,7 @@ that step.
 ## Constraints
 
 - Free tiers only: Shopify dev store, self-hosted n8n, Gemini or Groq free tier,
-  Slack free plan, Cloudflare Tunnel, Tailscale. Confirm each tier's current terms at
+  Slack free plan, Cloudflare free plan, DigitalPlat free domain, Tailscale. Confirm each tier's current terms at
   the step that first uses it, not from memory.
 - Secrets (Shopify tokens, Slack bot token, n8n encryption key) never go in git.
   Use an untracked `.env` and commit a `.env.example`.
@@ -97,7 +98,13 @@ Phase 2 must settle where the agents' store tools come from (Q1 in `DECISIONS.md
 
 ## Current status
 
-Phase 1, step 1.6: public HTTPS address for n8n (Cloudflare Tunnel). Steps 1.1 to 1.5
+Phase 1, step 1.6: public HTTPS address for n8n (Cloudflare Tunnel, `hooks.mjesar.dpdns.org`,
+D18). Domain on Cloudflare, nameservers live. Dashboard tunnels need Zero Trust, which asks
+for a card (not entered). `cloudflared` 2026.11.0 installed on the laptop (apt, CLI for setup
+only), so next: `cloudflared tunnel login`, stop if it asks for a card. Mohammad wants to understand the
+DNS and tunnel picture better first (CONCEPTS.md, Networking). Cloudflare two-factor still
+to do before 1.7. Domain expires 2027-11-11, renew
+from about 2027-07-14. Steps 1.1 to 1.5
 done (n8n 2.47.4 on 127.0.0.1:5678; workflow `Slack test` posts to `#store-alerts` via
 the Slack app `Store AI Crew`, bot scope `chat:write` only, channel by ID, token in n8n's
 credential store; Dev Dashboard app `Store AI Crew` on dev store `test-store-plus-9eiwvuh4`,

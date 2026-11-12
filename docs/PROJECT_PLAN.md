@@ -107,7 +107,7 @@ The same compose file is used in all three places.
 | Server rehearsal | Multipass VM (Ubuntu LTS) | Free, behaves like a real remote server, mistakes cost nothing |
 | Server, cloud | Oracle Cloud Always Free | Free, always on |
 | Deploy | Docker Compose for n8n, Kamal for the Rails app | Kamal is the Rails 8 default |
-| Public URL for webhooks | Cloudflare Tunnel | Shopify needs an HTTPS address to call |
+| Public URL for webhooks | Cloudflare Tunnel on the free domain `mjesar.dpdns.org`, `cloudflared` as a compose service (D18) | Shopify needs an HTTPS address to call; the address stays the same on every machine |
 | Private access | Tailscale | SSH to the server without opening ports |
 
 **Constraint: free tiers only.** Each tier's terms get checked at the step that first uses

@@ -140,6 +140,23 @@ went wrong. Notes come from doing the step, not from reading about it.
 
 ### Networking
 
+- **Domain, DNS, nameservers and a tunnel** (1.6): four pieces that together give n8n a
+  public address. The *domain* (`mjesar.dpdns.org`) is a name you hold; it came free from
+  DigitalPlat and lasts a year at a time. *DNS* is the internet's phone book: when Shopify
+  wants `hooks.mjesar.dpdns.org`, it asks "where is that?". The *nameservers* are whoever
+  answers that question for your domain. They were DigitalPlat's; switching them to
+  `nataly` and `nitin.ns.cloudflare.com` made Cloudflare the one that answers, so Cloudflare
+  can create `hooks.` and point it where it likes. The *tunnel* is where it points: a small
+  program, `cloudflared`, runs next to n8n and opens a connection *out* to Cloudflare.
+  Cloudflare receives Shopify's request at `hooks.mjesar.dpdns.org` and sends it back down
+  that connection to n8n. Because the connection starts from our side, nothing on the
+  laptop or server is opened to the internet, and the config decides which paths are let
+  through (webhooks yes, the editor no). The domain decides the *address*; the machine
+  running `cloudflared` decides *where it lands*: the laptop for now, the Oracle server
+  from 1.14, with the same address throughout. The surprise: the free domain was the easy
+  part; Cloudflare's dashboard wanted a card to create the tunnel, so it is made from the
+  command line instead.
+
 - **Private network with Tailscale** (1.13): reaching a server without exposing it.
 - **Public in, private admin**: only the webhook path faces the internet.
 

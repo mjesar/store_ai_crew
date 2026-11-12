@@ -29,7 +29,7 @@ current documentation. Check it at that step and note the answer in
 | OS | Ubuntu 26.04.1 LTS |
 | Docker | 29.9.3, Compose v5.7.0 (upgraded to v5.7.1 in step 1.1) |
 | Ruby, Node, Kamal | Installed |
-| Multipass, Tailscale, cloudflared | Not installed |
+| Multipass, Tailscale, cloudflared | Not installed (cloudflared CLI added in step 1.6 for tunnel setup; the running tunnel is a container, D18) |
 | Port 5678 | Free |
 | Resources | 8 cores, 14 GB RAM (about 6 GB free), 95 GB free disk, CPU virtualization on |
 
@@ -106,14 +106,25 @@ in all three places. See D8 in [../DECISIONS.md](../DECISIONS.md).
 - [ ] **1.6 Give n8n a public HTTPS address**
   - Goal: Shopify's servers can reach n8n. A VM on a laptop is not reachable from the
     internet, and Shopify only calls HTTPS addresses.
-  - Build: run Cloudflare Tunnel (`cloudflared`) on the laptop so a public HTTPS address
-    forwards to n8n. Set
-    `WEBHOOK_URL` in `.env` so n8n shows the public address in its webhook nodes.
-  - **Confirm:** Cloudflare's free quick tunnels give a random address that changes on
-    every restart. A stable address needs a named tunnel and a domain on Cloudflare. See
-    Q5 in [../DECISIONS.md](../DECISIONS.md).
-  - Done when: opening `https://<public-address>/healthz` in your phone's browser on
-    mobile data (so the request really comes from outside) gets a reply from n8n.
+  - Build: put the free domain `mjesar.dpdns.org` (DigitalPlat) on Cloudflare's free plan
+    by pointing its nameservers at Cloudflare. Create a named Cloudflare Tunnel and run
+    `cloudflared` as a service in the compose file, forwarding `hooks.mjesar.dpdns.org` to
+    n8n over Docker's network (D18). The dashboard route needs Zero Trust, which asks for
+    a card, so the tunnel is made from the CLI instead (a locally-managed tunnel): its
+    credentials file is a secret kept out of git, and its `config.yml` with the ingress
+    rules is committed. Ingress rules let only n8n's webhook paths and `/healthz` through,
+    with a 404 catch-all, so the editor is not on the internet. Set `WEBHOOK_URL` in `.env` so n8n shows the public address in its webhook
+    nodes.
+  - **Confirm:** the latest stable `cloudflare/cloudflared` image tag; Cloudflare's free
+    plan terms for tunnels (and whether Zero Trust asks for a card); that ingress rules
+    can filter by path for a tunnel managed from the dashboard.
+  - Progress (2026-11-12): domain registered, on Cloudflare, nameservers live (zone was
+    still Pending in the dashboard at sign-off). Zero Trust card page reached and closed.
+    `cloudflared` 2026.11.0 installed on the laptop. **Next: `cloudflared tunnel login`,
+    and stop if it asks for a card.**
+  - Done when: opening `https://hooks.mjesar.dpdns.org/healthz` in your phone's browser on
+    mobile data (so the request really comes from outside) gets a reply from n8n, and the
+    editor's address there is refused.
 
 - [ ] **1.7 Receive the first webhook**
   - Goal: see a real Shopify event arrive.
@@ -195,8 +206,10 @@ in all three places. See D8 in [../DECISIONS.md](../DECISIONS.md).
 - [ ] **1.14 Move to Oracle Cloud Always Free**
   - Goal: always on, not only while the laptop is open.
   - Build: create the cloud machine and repeat the 1.13 script on it. Add the cloud
-    firewall (Oracle security list) blocking all inbound, a named Cloudflare Tunnel, and an
-    n8n volume backup with a tested restore. Point the Shopify webhook at the new address.
+    firewall (Oracle security list) blocking all inbound, and an n8n volume backup with a
+    tested restore. The `cloudflared` service comes along in the compose file: stop the
+    stack on the laptop or VM first, so the tunnel runs in one place. The Shopify webhook
+    address does not change.
   - **Confirm:** the current Always Free machine sizes and limits before signing up.
   - If Oracle sign-up fails or has no free capacity, keep running on the Multipass VM
     and record that in DECISIONS.md.
@@ -227,6 +240,8 @@ Short version here, full reasoning in [../DECISIONS.md](../DECISIONS.md).
 - D17 (1.5): Shopify access through a Dev Dashboard app, `Store AI Crew`, custom
   distribution, scopes `read_products,read_inventory`, tokens from the client
   credentials grant (24 hours each). Admin API version `2026-10`.
+- D18 (1.6): free domain `mjesar.dpdns.org` on Cloudflare, named tunnel with
+  `cloudflared` as a compose service, so laptop, VM and Oracle use the same address.
 
 ## What broke
 
@@ -273,3 +288,5 @@ Real runs only. If a number has not been measured, it does not go here.
 | 2026-11-12 | 1.4: Slack app `Store AI Crew` (bot scope `chat:write` only) invited to `#store-alerts`; n8n credential "Slack API" with the bot token; workflow `Slack test` = Manual Trigger, then Slack "Send a message" to the channel by ID | Message "Hello from n8n" posted by Store AI Crew in `#store-alerts` at 1:40 AM local time. n8n appended its default footer "Automated with this n8n workflow" |
 | 2026-11-12 | 1.5 (part): reused dev store `test-store-plus-9eiwvuh4` (created from the Dev Dashboard, so it is in the same organization as the app). Track quantity on for 4 products | The Collection Snowboard: Liquid (`8559152267425`) 10, The Compare at Price Snowboard (`8559152005281`) 5, The 3p Fulfilled Snowboard (`8559152201889`) 20, The Collection Snowboard: Hydrogen (`8559151841441`) 3 |
 | 2026-11-12 | 1.5: Dev Dashboard app `Store AI Crew` (custom distribution, scopes `read_products,read_inventory`, no redirect URLs, not embedded) installed on the store. Token from the client credentials grant, then a GraphQL `products(first: 10)` query on Admin API `2026-10` with `curl` | Token reply: `scope` `read_inventory,read_products`, `expires_in` 86399. Query returned 10 products with `totalInventory`, `tracksInventory` and inventory item IDs, including Hydrogen (3) and Compare at Price (5). Query cost 26 of 20000 available. Note: most sample products also track stock, some at 0 |
+| 2026-11-12 | 1.6 (part): free domain `mjesar.dpdns.org` (DigitalPlat) added to Cloudflare's free plan; DigitalPlat nameservers replaced with `nataly.ns.cloudflare.com` and `nitin.ns.cloudflare.com` | `dig NS mjesar.dpdns.org @1.1.1.1` and the parent's `ns1.digitalplat.org` both return the two Cloudflare nameservers, minutes after the change |
+| 2026-11-12 | 1.6 (part): `cloudflared` CLI from Cloudflare's apt repository (pkg.cloudflare.com, suite `any`, the recommended one; no 26.04-specific suite exists). Used only for setup (login, create, route dns); the tunnel itself runs from the `cloudflare/cloudflared` image | `cloudflared --version` prints `2026.11.0 (built 2026-11-12-12:17 UTC)`, the latest GitHub release (published the same day) |
