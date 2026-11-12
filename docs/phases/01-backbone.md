@@ -1,6 +1,6 @@
 # Phase 1: Backbone (no AI)
 
-**Status:** in progress, started 2026-11-11. Current step: 1.7.
+**Status:** in progress, started 2026-11-11. Current step: 1.8.
 
 **Environment:** parts A to E run locally on the laptop, part F on a server.
 
@@ -124,11 +124,14 @@ in all three places. See D8 in [../DECISIONS.md](../DECISIONS.md).
     Wi-Fi as the laptop: through a tunnel every request goes out to Cloudflare and back.
     Shopify's own call at 1.7 is the fully outside test.
 
-- [ ] **1.7 Receive the first webhook**
+- [x] **1.7 Receive the first webhook** (done 2026-11-13)
   - Goal: see a real Shopify event arrive.
   - Build: a new workflow starting with a Webhook node (POST). Register an
-    `inventory_levels/update` webhook in Shopify pointing at it. Change a product's stock
-    in Shopify admin.
+    `inventory_levels/update` webhook in Shopify pointing at it (D20: the
+    `webhookSubscriptionCreate` mutation with `curl`). Change a product's stock in Shopify
+    admin. Publish the workflow first and read the payload in its Executions tab: the
+    tunnel only forwards production `/webhook/` paths, not `/webhook-test/`, and Shopify
+    drops a subscription whose deliveries keep failing.
   - Done when: the execution log shows the payload. Read it closely: it carries an
     inventory item ID, a location ID and the available quantity. It does not carry the
     product title. That gap is step 1.10.
@@ -314,3 +317,6 @@ Real runs only. If a number has not been measured, it does not go here.
 | 2026-11-13 | 1.6 (part): phone browser | `https://hooks.mjesar.dpdns.org/healthz` shows `{"status": "ok"}`; `/health` (not in the rules) gets the catch-all's 404 |
 | 2026-11-13 | 1.6 (part): `credentials-file` line removed from `config.yml` (unused with a token), `docker compose restart cloudflared` | Settings log shows only `config:/etc/cloudflared/config.yml`, 4 connections re-registered, `/healthz` 200, `/signin` 404 |
 | 2026-11-13 | 1.6: `N8N_WEBHOOK_URL=https://hooks.mjesar.dpdns.org/` and `N8N_PROXY_HOPS=1` in `.env`, then `docker compose up -d` (recreates n8n; `restart` would keep the old environment) | n8n container recreated, `printenv` inside shows both values, `/healthz` still 200. A new Webhook node shows `https://hooks.mjesar.dpdns.org/webhook-test/<id>` after a full reload of the editor tab (a tab opened before the change still showed `http://localhost:5678/...`) |
+| 2026-11-13 | 1.7 (part): n8n workflow `Low stock alert`, Webhook node `POST` at path `shopify/inventory-levels-update`, Respond Immediately, published. Test `curl -X POST` with a dummy JSON body through the tunnel | `{"message":"Workflow was started"}`, HTTP 200 |
+| 2026-11-13 | 1.7 (part): token into a shell variable (`TOKEN=$(curl ... \| jq -r .access_token)`, only its length printed), then `webhookSubscriptionCreate` on Admin API `2026-10`, topic `INVENTORY_LEVELS_UPDATE`, `uri` the production URL, format JSON (D20) | Subscription `gid://shopify/WebhookSubscription/1722870104225`, `apiVersion` `2026-10`, `userErrors` empty. Query cost 10 |
+| 2026-11-13 | 1.7: stock of The Collection Snowboard: Hydrogen changed from 3 to 2 in Shopify admin | Production execution #7 in n8n, succeeded in 17 ms. Headers: `user-agent: Shopify-Captain-Hook`, `host: hooks.mjesar.dpdns.org`, `cdn-loop: cloudflare`. Body: `inventory_item_id` 48683436081313, `location_id` 81985503393, `available` 2, `updated_at`, `admin_graphql_api_id` (an `InventoryLevel` gid). No product title or variant in the payload |

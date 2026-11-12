@@ -149,6 +149,20 @@ went wrong. Notes come from doing the step, not from reading about it.
 - **Answer fast, work later** (1.11): why the reply to Shopify comes before the slow steps.
 - **Thin payloads** (1.7, 1.10): the event says what changed, not everything about it.
 
+  The first real `inventory_levels/update` delivery (1.7) carried five fields: an
+  inventory item ID, a location ID, the new `available` quantity, a timestamp and a
+  GraphQL ID. No product title, no variant, no price. In Shopify, stock belongs to an
+  *inventory item* (one per variant) at a *location*, not to the product, so the event
+  describes exactly that. An alert needs the product's name, so the workflow has to look
+  it up through the Admin API from the inventory item ID (1.10). Thin payloads keep
+  deliveries small and fast, and avoid sending stale copies of data: the receiver fetches
+  the current state when it needs it.
+
+- **Test URL vs production URL, in practice** (1.7): the editor's "Execute workflow" waits
+  on `/webhook-test/` for one call, which the tunnel does not forward. Shopify calls the
+  production URL `/webhook/...`, which only answers once the workflow is published, and
+  each call appears in the workflow's Executions tab, not on the editor canvas.
+
 ### Networking
 
 - **Domain, DNS, nameservers and a tunnel** (1.6): four pieces that together give n8n a
