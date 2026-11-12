@@ -39,13 +39,13 @@ Extras after phase 4: risky-order flag, product copy claims checker.
   and carrying out the approved action.
 - **Rails agents** do the thinking, using store tools through `shop_mcp_server`
   (from phase 2).
-- **The owner** approves in Slack (D16; Telegram is blocked from Pakistan, so it is a
-  later extra from the server).
+- **The owner** approves in Slack (D16; Telegram's bot API is blocked from Pakistan, so it
+  is a later extra from the server).
 - **Hosting:** built locally with Docker Compose, rehearsed on a Multipass VM, then
   run on Oracle Cloud Always Free (D8).
   n8n self-hosted in Docker, Kamal for the Rails app, Tailscale for SSH,
   Cloudflare Tunnel on the free domain `mjesar.dpdns.org` (`cloudflared` as a compose
-  service) so Shopify webhooks can reach n8n (D18).
+  service, token from `.env`) so Shopify webhooks can reach n8n (D18, D19).
 
 ## Versions: latest stable, always (Mohammad, 2026-11-11)
 
@@ -76,7 +76,7 @@ that step.
 - `docs/PROJECT_PLAN.md`: the whole plan, phases, architecture, extras.
 - `docs/phases/NN-*.md`: the current phase's step checklist. The first unticked step
   is where to continue.
-- `docs/DECISIONS.md`: decisions with reasons, open questions (Q1 to Q7), and facts
+- `docs/DECISIONS.md`: decisions with reasons, open questions (Q1 to Q9), and facts
   still to confirm against current documentation.
 - `docs/CONCEPTS.md`: learning notes, filled in when each idea is first met.
 
@@ -96,22 +96,34 @@ Keeping them current is part of every step:
 `shop_mcp_server` reads its own seeded database, not Shopify (checked 2026-11-11).
 Phase 2 must settle where the agents' store tools come from (Q1 in `DECISIONS.md`).
 
+## Writing in this repo
+
+The repo is public and doubles as a portfolio piece. Everything written here (docs,
+README, code comments, commit messages, PR descriptions) is for three readers:
+
+1. Someone learning to build the same thing: how to do it, what to watch for.
+2. A reviewer or hiring manager: clear decisions, trade-offs, real proof.
+3. Mohammad months later, before an interview: what was built, why, what broke.
+
+Rules:
+
+- **In:** decisions and their reasons, options compared, what broke and how it was
+  found, commands and real output as proof, concepts in plain words.
+- **Out:** personal circumstances and session chatter (what was or was not available,
+  what someone postponed or wanted, times of day, "at sign-off"), personal reminders,
+  and anything that points out a weak spot in personal security (for example a missing
+  backup). Those go in Claude's private memory for this project, not in git.
+- State a reason as the project's reason, not as a person's preference ("a VPN is ruled
+  out as a dependency", not "Mohammad ruled out a VPN").
+- Follow `~/.claude/skills/mjesar-context/references/writing-voice.md` (no em dashes,
+  plain words, short sentences, lead with why) and the README playbook there.
+- Code comments say why a line is there, not what it does.
+- Commit messages: lowercase, single line, no trailing period. PR descriptions: lead
+  with why, a few sentences, no file-by-file list.
+
 ## Current status
 
-Phase 1, step 1.6: public HTTPS address for n8n (Cloudflare Tunnel, `hooks.mjesar.dpdns.org`,
-D18). Domain on Cloudflare, nameservers live. Dashboard tunnels need Zero Trust, which asks
-for a card (not entered). `cloudflared` 2026.11.0 installed on the laptop (apt, CLI for setup
-only), `cloudflared tunnel login` done, no card asked.
-Tunnel `store-ai-crew` (`48bdbbd9-e1c4-4eaf-9605-ff0ec1cd3894`) created, `hooks.mjesar.dpdns.org` routed to it (CNAME, proxied).
-`cloudflared/config.yml` ingress rules
-written and checked. Next: the `cloudflared` compose service. Mohammad wants to understand the
-DNS and tunnel picture better first (CONCEPTS.md, Networking). Cloudflare two-factor still
-to do before 1.7. Domain expires 2027-11-11, renew
-from about 2027-07-14. Steps 1.1 to 1.5
-done (n8n 2.47.4 on 127.0.0.1:5678; workflow `Slack test` posts to `#store-alerts` via
-the Slack app `Store AI Crew`, bot scope `chat:write` only, channel by ID, token in n8n's
-credential store; Dev Dashboard app `Store AI Crew` on dev store `test-store-plus-9eiwvuh4`,
-scopes `read_products,read_inventory`, 24 hour tokens from the client credentials grant,
-Admin API `2026-10`). Mohammad has no password
-manager yet (Bitwarden suggested), so the encryption key in `.env` has no backup.
-Multipass comes at 1.13. Update this line as steps complete.
+Phase 1, step 1.6 (public HTTPS address for n8n): tunnel, DNS record, ingress rules and the
+`cloudflared` compose service are done and tested. Remaining: `N8N_WEBHOOK_URL` and
+`N8N_PROXY_HOPS` in `.env` (the plan said `WEBHOOK_URL`, deprecated since n8n 2.35). Then
+1.7. Details in `docs/phases/01-backbone.md`. Update this line as steps complete.

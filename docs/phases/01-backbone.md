@@ -107,27 +107,23 @@ in all three places. See D8 in [../DECISIONS.md](../DECISIONS.md).
   - Goal: Shopify's servers can reach n8n. A VM on a laptop is not reachable from the
     internet, and Shopify only calls HTTPS addresses.
   - Build: put the free domain `mjesar.dpdns.org` (DigitalPlat) on Cloudflare's free plan
-    by pointing its nameservers at Cloudflare. Create a named Cloudflare Tunnel and run
-    `cloudflared` as a service in the compose file, forwarding `hooks.mjesar.dpdns.org` to
-    n8n over Docker's network (D18). The dashboard route needs Zero Trust, which asks for
-    a card, so the tunnel is made from the CLI instead (a locally-managed tunnel): its
-    credentials file is a secret kept out of git, and its `config.yml` with the ingress
-    rules is committed. Ingress rules let only n8n's webhook paths and `/healthz` through,
-    with a 404 catch-all, so the editor is not on the internet. Set `WEBHOOK_URL` in `.env` so n8n shows the public address in its webhook
-    nodes.
+    by pointing its nameservers at Cloudflare. Create a named tunnel from the CLI
+    (`cloudflared tunnel login`, `create`, `route dns`), because the dashboard route needs
+    Cloudflare Zero Trust, whose sign-up asks for a payment method even on the free plan.
+    Run `cloudflared` as a compose service next to n8n, with the tunnel token from `.env`
+    (D19) and a committed `cloudflared/config.yml` whose ingress rules let only n8n's
+    webhook paths and `/healthz` through, with a 404 catch-all, so the editor is not on the
+    internet. Set `N8N_WEBHOOK_URL` in `.env` so n8n shows the public address in its
+    webhook nodes.
   - **Confirm:** the latest stable `cloudflare/cloudflared` image tag; Cloudflare's free
-    plan terms for tunnels (and whether Zero Trust asks for a card); that ingress rules
-    can filter by path for a tunnel managed from the dashboard.
-  - Progress (2026-11-12): domain registered, on Cloudflare, nameservers live (zone was
-    still Pending in the dashboard at sign-off). Zero Trust card page reached and closed.
-    `cloudflared` 2026.11.0 installed on the laptop; `cloudflared tunnel login` authorized
-    `mjesar.dpdns.org` with no card asked. Tunnel `store-ai-crew` created
-    (`48bdbbd9-e1c4-4eaf-9605-ff0ec1cd3894`), `hooks.mjesar.dpdns.org` routed to it.
-    `cloudflared/config.yml` written and checked (webhooks and `/healthz` to n8n, the rest
-    404). **Next: the `cloudflared` compose service.**
-  - Done when: opening `https://hooks.mjesar.dpdns.org/healthz` in your phone's browser on
-    mobile data (so the request really comes from outside) gets a reply from n8n, and the
-    editor's address there is refused.
+    plan terms for tunnels; that ingress rules can filter by path. All checked, see
+    [../DECISIONS.md](../DECISIONS.md) and the Proof table.
+  - Progress: domain, tunnel, DNS record, ingress rules and the compose service are done
+    and tested. Remaining: `N8N_WEBHOOK_URL`.
+  - Done when: opening `https://hooks.mjesar.dpdns.org/healthz` from a phone gets a reply
+    from n8n, and the editor's address (`/signin`) gets a 404. The phone can be on the same
+    Wi-Fi as the laptop: through a tunnel every request goes out to Cloudflare and back.
+    Shopify's own call at 1.7 is the fully outside test.
 
 - [ ] **1.7 Receive the first webhook**
   - Goal: see a real Shopify event arrive.
@@ -228,7 +224,8 @@ in all three places. See D8 in [../DECISIONS.md](../DECISIONS.md).
 ## Repo layout at the end of this phase
 
 ```
-docker-compose.yml      n8n service
+docker-compose.yml      n8n and cloudflared services
+cloudflared/config.yml  tunnel ingress rules (which paths are public)
 .env.example            every variable the stack needs, without values
 .gitignore              ignores .env
 n8n/workflows/          exported workflow JSON
@@ -245,13 +242,15 @@ Short version here, full reasoning in [../DECISIONS.md](../DECISIONS.md).
   credentials grant (24 hours each). Admin API version `2026-10`.
 - D18 (1.6): free domain `mjesar.dpdns.org` on Cloudflare, named tunnel with
   `cloudflared` as a compose service, so laptop, VM and Oracle use the same address.
+- D19 (1.6): the tunnel container gets its secret as a token from `.env`, not as a
+  mounted credentials file.
 
 ## What broke
 
 Every real problem hit, what the cause turned out to be, and how it was found. This is the
 most useful section for the post, so write it when it happens.
 
-- **2026-11-11, step 1.3: the encryption key leaked into a chat log.** While showing what
+- **2026-11-11, step 1.3: the encryption key was printed into an AI assistant chat.** While showing what
   n8n keeps in its data folder, a command meant to print only the field names of
   `/home/node/.n8n/config` failed to parse the file, and Node's error message quoted the
   offending line, which was the key. Lesson: a command that touches a secret file must be
@@ -268,16 +267,31 @@ most useful section for the post, so write it when it happens.
   whether the block is country-wide or one provider (test: same `curl` over a phone
   hotspot). It only affects development on the laptop: from the Oracle server outside
   Pakistan the API is reachable directly. Workarounds considered: WARP or a VPN (ruled
-  out by Mohammad), a Cloudflare Worker relay (n8n 2.47.4's Telegram credential has a
+  out, no VPN dependency for this project), a Cloudflare Worker relay (n8n 2.47.4's Telegram credential has a
   **Base URL** field, default `https://api.telegram.org`, checked in the container
   source), moving to the server sooner, or Slack while on the laptop (D15). Store owners
   in Pakistan would hit the same block, which makes the WhatsApp extra more valuable.
 
-- **2026-11-12, step 1.5: an Admin API token was pasted into the chat.** The first
-  token request printed the whole JSON reply, token included, and it was copied into the
-  conversation to show it worked. Low risk (read only, dev store, expires within 24
+- **2026-11-12, step 1.5: an Admin API token was pasted into an AI assistant chat.** The
+  first token request printed the whole JSON reply, token included, and it was copied into
+  the conversation to show it worked. Low risk (read only, dev store, expires within 24
   hours), so it was left to expire. Lesson: capture tokens straight into a shell variable
   (`TOKEN=$(curl ... | jq -r .access_token)`) so they never reach the screen.
+
+- **2026-11-12, step 1.6: creating a tunnel in the dashboard asks for a payment method.**
+  Cloudflare's dashboard creates tunnels inside Zero Trust, and activating Zero Trust's
+  free plan asks for a card or PayPal ($0 a month, usage above the allowance billed). The
+  same named tunnel can be created from the CLI instead (`cloudflared tunnel login`,
+  `create`, `route dns`), which needs no Zero Trust sign-up. The rules then live in a
+  committed `config.yml` rather than the dashboard, which suits a repo that is the source
+  of truth anyway.
+- **2026-11-13, step 1.6: the container could not have read the tunnel's credentials
+  file.** `cloudflared tunnel create` writes a `.json` key readable only by the user who
+  ran it (uid 1000), but the `cloudflare/cloudflared` image runs as its own non-root user
+  (uid 65532), so mounting the file would fail with permission denied. Found before it
+  broke, by reading the image's Dockerfile (`USER 65532:65532`). Fix: pass the same secret
+  as a token in `TUNNEL_TOKEN` from `.env` (D19), then prove the local ingress rules still
+  apply with a token.
 
 ## Proof
 
@@ -288,12 +302,15 @@ Real runs only. If a number has not been measured, it does not go here.
 | 2026-11-11 | 1.1: `apt upgrade`, then checked versions and source | Docker Engine 29.9.3 and Compose v5.7.1, both from Docker's official stable apt repository (download.docker.com), installed version equals newest available |
 | 2026-11-11 | 1.2: `.gitignore`, `.env.example`, `.env` with a key from `openssl rand -hex 32` | `git status` lists `.gitignore` and `.env.example`, not `.env`. `.env` has permissions 600 (owner only) |
 | 2026-11-11 | 1.3: n8n `docker.n8n.io/n8nio/n8n:2.47.4` (npm `stable` and `latest` tags; 2.48.1 was beta), port bound to 127.0.0.1, named volume `n8n_data` | `docker compose ps` shows `127.0.0.1:5678->5678/tcp`, `/healthz` returns 200. Owner account created, then `down` and `up -d`: new container (17:17:59 UTC) on the volume from 17:10:50 UTC, n8n reports setup no longer needed, so the data survived |
-| 2026-11-12 | 1.4: Slack app `Store AI Crew` (bot scope `chat:write` only) invited to `#store-alerts`; n8n credential "Slack API" with the bot token; workflow `Slack test` = Manual Trigger, then Slack "Send a message" to the channel by ID | Message "Hello from n8n" posted by Store AI Crew in `#store-alerts` at 1:40 AM local time. n8n appended its default footer "Automated with this n8n workflow" |
+| 2026-11-12 | 1.4: Slack app `Store AI Crew` (bot scope `chat:write` only) invited to `#store-alerts`; n8n credential "Slack API" with the bot token; workflow `Slack test` = Manual Trigger, then Slack "Send a message" to the channel by ID | Message "Hello from n8n" posted by Store AI Crew in `#store-alerts`. n8n appended its default footer "Automated with this n8n workflow" |
 | 2026-11-12 | 1.5 (part): reused dev store `test-store-plus-9eiwvuh4` (created from the Dev Dashboard, so it is in the same organization as the app). Track quantity on for 4 products | The Collection Snowboard: Liquid (`8559152267425`) 10, The Compare at Price Snowboard (`8559152005281`) 5, The 3p Fulfilled Snowboard (`8559152201889`) 20, The Collection Snowboard: Hydrogen (`8559151841441`) 3 |
 | 2026-11-12 | 1.5: Dev Dashboard app `Store AI Crew` (custom distribution, scopes `read_products,read_inventory`, no redirect URLs, not embedded) installed on the store. Token from the client credentials grant, then a GraphQL `products(first: 10)` query on Admin API `2026-10` with `curl` | Token reply: `scope` `read_inventory,read_products`, `expires_in` 86399. Query returned 10 products with `totalInventory`, `tracksInventory` and inventory item IDs, including Hydrogen (3) and Compare at Price (5). Query cost 26 of 20000 available. Note: most sample products also track stock, some at 0 |
 | 2026-11-12 | 1.6 (part): free domain `mjesar.dpdns.org` (DigitalPlat) added to Cloudflare's free plan; DigitalPlat nameservers replaced with `nataly.ns.cloudflare.com` and `nitin.ns.cloudflare.com` | `dig NS mjesar.dpdns.org @1.1.1.1` and the parent's `ns1.digitalplat.org` both return the two Cloudflare nameservers, minutes after the change |
 | 2026-11-12 | 1.6 (part): `cloudflared` CLI from Cloudflare's apt repository (pkg.cloudflare.com, suite `any`, the recommended one; no 26.04-specific suite exists). Used only for setup (login, create, route dns); the tunnel itself runs from the `cloudflare/cloudflared` image | `cloudflared --version` prints `2026.11.0 (built 2026-11-12-12:17 UTC)`, the latest GitHub release (published the same day) |
-| 2026-11-12 | 1.6 (part): `cloudflared tunnel login`, zone `mjesar.dpdns.org` chosen and authorized in the browser | Browser: "Cloudflared has installed a certificate allowing your origin to create a Tunnel on this zone." No Zero Trust activation and no card or PayPal asked |
+| 2026-11-12 | 1.6 (part): `cloudflared tunnel login`, zone `mjesar.dpdns.org` chosen and authorized in the browser | Browser: "Cloudflared has installed a certificate allowing your origin to create a Tunnel on this zone." No Zero Trust sign-up or payment method needed |
 | 2026-11-12 | 1.6 (part): `cloudflared tunnel create store-ai-crew`, one tunnel per project since the domain is shared | ID `48bdbbd9-e1c4-4eaf-9605-ff0ec1cd3894`, created 17:07:50 UTC, credentials file `~/.cloudflared/<id>.json` (secret, outside the repo). `cert.pem` is `-rw-------`. `cloudflared tunnel list` shows it with no connections yet |
 | 2026-11-12 | 1.6 (part): `cloudflared tunnel route dns store-ai-crew hooks.mjesar.dpdns.org` | "Added CNAME hooks.mjesar.dpdns.org which will route to this tunnel" (17:16:52 UTC). `dig +short hooks.mjesar.dpdns.org @1.1.1.1` returns Cloudflare proxy IPs `104.21.15.170` and `172.67.163.80`, so the record is public and proxied |
 | 2026-11-12 | 1.6 (part): `cloudflared/config.yml`: rule `^/webhook/` and rule `^/healthz$` on `hooks.mjesar.dpdns.org` to `http://n8n:5678`, catch-all `http_status:404` | `ingress validate` prints OK. `ingress rule .../signin` matches rule #2 (the 404 catch-all; rules count from 0), `ingress rule .../webhook/inventory-update` matches rule #0 to `http://n8n:5678`. So the editor is not reachable through the tunnel, and path rules do work on a locally-managed tunnel |
+| 2026-11-13 | 1.6 (part): `cloudflared` compose service, image `cloudflare/cloudflared:2026.11.0` (amd64 and arm64), `TUNNEL_TOKEN` from `.env` (D19), rules file mounted read-only, `docker compose up -d` | Logs: 4 connections registered (2 `khi01` Karachi, 2 `sin12`/`sin15` Singapore, QUIC), all pre-checks PASS. From the laptop: `/healthz` 200 `{"status":"ok"}`; `/signin` 404 with an empty body (the tunnel's catch-all, n8n never saw it); `/webhook/does-not-exist` 404 from n8n ("webhook is not registered"), so webhook paths reach n8n. Local `config.yml` rules apply with a token |
+| 2026-11-13 | 1.6 (part): phone browser | `https://hooks.mjesar.dpdns.org/healthz` shows `{"status": "ok"}`; `/health` (not in the rules) gets the catch-all's 404 |
+| 2026-11-13 | 1.6 (part): `credentials-file` line removed from `config.yml` (unused with a token), `docker compose restart cloudflared` | Settings log shows only `config:/etc/cloudflared/config.yml`, 4 connections re-registered, `/healthz` 200, `/signin` 404 |

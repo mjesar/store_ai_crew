@@ -40,6 +40,17 @@ went wrong. Notes come from doing the step, not from reading about it.
   are our job. Code and setup travel through git; data does not travel at all, each
   machine has its own volume. Proof it works: a new container started on the old volume
   still had the owner account.
+
+- **Why n8n is already running after a reboot** (1.3, noticed at 1.6): two settings
+  together. The Docker engine is a systemd service set to `enabled`, so Ubuntu starts it
+  at boot. Then the engine restarts every container whose restart policy says so, and the
+  compose file gives n8n `restart: unless-stopped`. Proof: the laptop booted at 16:08:43
+  and n8n started ten seconds later with no command typed. The default policy is `no`,
+  which is why containers in older projects needed `docker compose up` after every boot.
+  "Unless stopped" means `docker compose stop` keeps it down across reboots, and `down`
+  removes the container (the volume stays). The same two settings bring n8n back on the
+  Oracle server after a crash or reboot. VS Code's Container Tools extension shows all
+  of this: compose containers grouped by project, plain `docker run` ones apart.
 - **Environment files and secrets** (1.2): what goes in `.env`, what goes in git.
 
   Secrets live in `.env`, which git ignores. `.env.example` is committed with the same
@@ -156,6 +167,28 @@ went wrong. Notes come from doing the step, not from reading about it.
   from 1.14, with the same address throughout. The surprise: the free domain was the easy
   part; Cloudflare's dashboard wanted a card to create the tunnel, so it is made from the
   command line instead.
+
+- **A named tunnel is set up in pieces, unlike ngrok** (1.6): `ngrok http --url=x 3000`
+  packs the account, the tunnel, the address, the destination and running it into one
+  line. Cloudflare splits them: `login` (the account), `create` (an empty tunnel with an
+  ID, stored at Cloudflare), `route dns` (a CNAME from `hooks.` to
+  `<id>.cfargotunnel.com`), `config.yml` (where requests land, with rules per path), and
+  `tunnel run` (the only part that is "running"; `tunnel list` shows connections only
+  then). The name `store-ai-crew` is just a label for the ID. Because the address belongs
+  to the tunnel and not to a machine, it does not change when the laptop restarts or the
+  tunnel moves to the server. Running, it holds four connections at once (two to
+  Karachi, two to Singapore), so one can drop without the address going down.
+
+- **Three keys with different powers** (1.6): `cert.pem`, from `login`, is account level:
+  it can create, delete and route tunnels, so it stays on the laptop and never goes to a
+  server. The `.json` file, from `create`, can only run this one tunnel. The token, from
+  `tunnel token`, is the same secret as the `.json` written as one line; it sits in
+  `.env` and is what the container uses (D19), because the container runs as its own
+  non-root user and cannot read a file only the user who created it can read. A leaked token means delete
+  and recreate the tunnel; a leaked `cert.pem` means revoke it and log in again. Path rules
+  were proven by two different 404s: `/signin` gets an empty 404 from the tunnel's
+  catch-all (n8n never sees it), while `/webhook/unknown` gets n8n's own "not registered"
+  404, so webhook paths do reach n8n.
 
 - **Private network with Tailscale** (1.13): reaching a server without exposing it.
 - **Public in, private admin**: only the webhook path faces the internet.

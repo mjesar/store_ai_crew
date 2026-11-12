@@ -18,8 +18,8 @@ owner ever seeing it.
 test is how features get rejected. Anything that fails it goes in the extras list
 (section 8) and waits until phase 4 is done.
 
-**What kind of project this is:** a portfolio and learning project. Mohammad writes all the
-code and config. It is built in four phases, and each phase ends in something that can be
+**What kind of project this is:** a portfolio and learning project. All code and config are
+written by hand, one small step at a time. It is built in four phases, and each phase ends in something that can be
 shown working, with a written post about what was learned.
 
 **Why this project:**
