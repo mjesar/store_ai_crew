@@ -126,7 +126,8 @@ Rules:
 
 ## Current status
 
-Phase 1, step 1.7 (receive the first webhook). Step 1.6 is done: n8n is reachable at
-`https://hooks.mjesar.dpdns.org` through a Cloudflare Tunnel (D18, D19), only webhook paths
-and `/healthz` are public, and n8n builds its webhook URLs from `N8N_WEBHOOK_URL`. Details
-in `docs/phases/01-backbone.md`. Update this line as steps complete.
+Phase 1, step 1.8 (verify the webhook signature). Step 1.7 is done: workflow `Low stock
+alert` (published) receives Shopify's `inventory_levels/update` webhook at
+`https://hooks.mjesar.dpdns.org/webhook/shopify/inventory-levels-update` (shop-specific
+subscription, D20). Details in `docs/phases/01-backbone.md`. Update this line as steps
+complete.
