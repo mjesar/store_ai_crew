@@ -73,6 +73,7 @@ reach the editor. (Step 1.3 locally, 1.13 to see the trap on purpose, 1.14 for t
 | Strong owner password, and two-factor login if n8n offers it (**confirm**) | 1.3 |
 | `N8N_ENCRYPTION_KEY` set by hand, kept in `.env`, backed up outside the server | 1.3 |
 | Image pinned to an exact version, upgraded on purpose after reading release notes | 1.3 |
+| n8n gets only the environment variables it needs. Today `env_file: .env` also hands it `TUNNEL_TOKEN` and the Shopify secret, which a Code node could read. Either list its variables one by one (as the `cloudflared` service does) or block environment access from nodes (**confirm** n8n's setting, believed to be `N8N_BLOCK_ENV_ACCESS_IN_NODE`, and its default) | 1.13 |
 | Webhook signature (HMAC) checked before anything else runs | 1.8 |
 | Duplicate deliveries ignored | 1.9 |
 | Workflow exports checked for secrets before committing | 1.12 |
