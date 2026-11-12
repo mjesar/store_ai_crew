@@ -111,6 +111,8 @@ the answer recorded here with the date.
 | Header name of Shopify's per-delivery webhook ID | 1.9 | |
 | Shopify's webhook response time limit and retry policy | 1.11 | |
 | n8n self-hosted licence terms for this use | 1.3 | |
+| n8n's webhook URL setting behind a proxy | 1.6 | 2026-11-13, n8n docs (endpoints, webhook URL behind a reverse proxy): `N8N_WEBHOOK_URL` with a trailing slash, plus `N8N_PROXY_HOPS=1`; `WEBHOOK_URL` is deprecated since 2.35 and still works with a warning. 2.47.4's config source reads `N8N_WEBHOOK_URL`. Verified in a Webhook node |
+| n8n task runner mode (startup deprecation warning: internal mode will be removed; external mode runs the runner as a separate process) | Before the next n8n upgrade | |
 | n8n's recommended image registry (`docker.n8n.io` vs Docker Hub) | 1.3 | Image 2.47.4 exists on both (checked 2026-11-11); which one the docs recommend not yet confirmed |
 | Oracle Cloud Always Free machine sizes and limits | 1.14 | |
 | Tailscale free plan limits | 1.13 | |

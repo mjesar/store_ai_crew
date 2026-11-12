@@ -1,6 +1,6 @@
 # Phase 1: Backbone (no AI)
 
-**Status:** in progress, started 2026-11-11. Current step: 1.6.
+**Status:** in progress, started 2026-11-11. Current step: 1.7.
 
 **Environment:** parts A to E run locally on the laptop, part F on a server.
 
@@ -103,7 +103,7 @@ in all three places. See D8 in [../DECISIONS.md](../DECISIONS.md).
     are the starting point. Record which scopes were needed.
   - Done when: a `curl` call to the Admin API from the laptop returns your products.
 
-- [ ] **1.6 Give n8n a public HTTPS address**
+- [x] **1.6 Give n8n a public HTTPS address** (done 2026-11-13)
   - Goal: Shopify's servers can reach n8n. A VM on a laptop is not reachable from the
     internet, and Shopify only calls HTTPS addresses.
   - Build: put the free domain `mjesar.dpdns.org` (DigitalPlat) on Cloudflare's free plan
@@ -113,13 +113,12 @@ in all three places. See D8 in [../DECISIONS.md](../DECISIONS.md).
     Run `cloudflared` as a compose service next to n8n, with the tunnel token from `.env`
     (D19) and a committed `cloudflared/config.yml` whose ingress rules let only n8n's
     webhook paths and `/healthz` through, with a 404 catch-all, so the editor is not on the
-    internet. Set `N8N_WEBHOOK_URL` in `.env` so n8n shows the public address in its
-    webhook nodes.
+    internet. Set `N8N_WEBHOOK_URL` (and `N8N_PROXY_HOPS=1`) in `.env` so n8n shows the
+    public address in its webhook nodes. `WEBHOOK_URL` is the older name, deprecated since
+    n8n 2.35.
   - **Confirm:** the latest stable `cloudflare/cloudflared` image tag; Cloudflare's free
     plan terms for tunnels; that ingress rules can filter by path. All checked, see
     [../DECISIONS.md](../DECISIONS.md) and the Proof table.
-  - Progress: domain, tunnel, DNS record, ingress rules and the compose service are done
-    and tested. Remaining: `N8N_WEBHOOK_URL`.
   - Done when: opening `https://hooks.mjesar.dpdns.org/healthz` from a phone gets a reply
     from n8n, and the editor's address (`/signin`) gets a 404. The phone can be on the same
     Wi-Fi as the laptop: through a tunnel every request goes out to Cloudflare and back.
@@ -314,3 +313,4 @@ Real runs only. If a number has not been measured, it does not go here.
 | 2026-11-13 | 1.6 (part): `cloudflared` compose service, image `cloudflare/cloudflared:2026.11.0` (amd64 and arm64), `TUNNEL_TOKEN` from `.env` (D19), rules file mounted read-only, `docker compose up -d` | Logs: 4 connections registered (2 `khi01` Karachi, 2 `sin12`/`sin15` Singapore, QUIC), all pre-checks PASS. From the laptop: `/healthz` 200 `{"status":"ok"}`; `/signin` 404 with an empty body (the tunnel's catch-all, n8n never saw it); `/webhook/does-not-exist` 404 from n8n ("webhook is not registered"), so webhook paths reach n8n. Local `config.yml` rules apply with a token |
 | 2026-11-13 | 1.6 (part): phone browser | `https://hooks.mjesar.dpdns.org/healthz` shows `{"status": "ok"}`; `/health` (not in the rules) gets the catch-all's 404 |
 | 2026-11-13 | 1.6 (part): `credentials-file` line removed from `config.yml` (unused with a token), `docker compose restart cloudflared` | Settings log shows only `config:/etc/cloudflared/config.yml`, 4 connections re-registered, `/healthz` 200, `/signin` 404 |
+| 2026-11-13 | 1.6: `N8N_WEBHOOK_URL=https://hooks.mjesar.dpdns.org/` and `N8N_PROXY_HOPS=1` in `.env`, then `docker compose up -d` (recreates n8n; `restart` would keep the old environment) | n8n container recreated, `printenv` inside shows both values, `/healthz` still 200. A new Webhook node shows `https://hooks.mjesar.dpdns.org/webhook-test/<id>` after a full reload of the editor tab (a tab opened before the change still showed `http://localhost:5678/...`) |

@@ -126,7 +126,7 @@ Rules:
 
 ## Current status
 
-Phase 1, step 1.6 (public HTTPS address for n8n): tunnel, DNS record, ingress rules and the
-`cloudflared` compose service are done and tested. Remaining: `N8N_WEBHOOK_URL` and
-`N8N_PROXY_HOPS` in `.env` (the plan said `WEBHOOK_URL`, deprecated since n8n 2.35). Then
-1.7. Details in `docs/phases/01-backbone.md`. Update this line as steps complete.
+Phase 1, step 1.7 (receive the first webhook). Step 1.6 is done: n8n is reachable at
+`https://hooks.mjesar.dpdns.org` through a Cloudflare Tunnel (D18, D19), only webhook paths
+and `/healthz` are public, and n8n builds its webhook URLs from `N8N_WEBHOOK_URL`. Details
+in `docs/phases/01-backbone.md`. Update this line as steps complete.
