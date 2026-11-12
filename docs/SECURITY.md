@@ -15,6 +15,8 @@ documentation.
 | n8n editor and its credentials | Holds every token in one place |
 | `N8N_ENCRYPTION_KEY` | Decrypts n8n's saved credentials |
 | Slack bot token | Whoever has it can post as the bot in the workspace |
+| Cloudflare tunnel token | Whoever has it can serve `hooks.mjesar.dpdns.org`, so receive or fake the store's webhooks |
+| `cert.pem` from `cloudflared tunnel login` | Can create, route and delete tunnels on the domain |
 | The approval step | The one thing that stops an agent acting alone |
 
 ## The main rule: almost nothing faces the internet
@@ -29,10 +31,20 @@ documentation.
                 webhook path only  -->  n8n on the server
 ```
 
-- **No open inbound ports.** A Cloudflare Tunnel connects outward from the server, so the
-  server firewall can block all incoming traffic. (Step 1.6, 1.14)
-- **Only the webhook path is public.** The tunnel forwards only n8n's webhook URLs, not the
-  editor. **Confirm** that tunnel ingress rules can filter by path. (Step 1.6)
+- **No open inbound ports.** `cloudflared` connects outward from the server, so the
+  server firewall can block all incoming traffic. (Step 1.6, 1.14; D18)
+- **Only the webhook path is public.** The tunnel forwards only n8n's webhook URLs (and
+  `/healthz`), not the editor. Checked 2026-11-12/13: `/signin` gets the tunnel's 404
+  catch-all and `/webhook/...` reaches n8n. (Step 1.6)
+- **The Cloudflare account controls the public address.** Two-factor authentication on
+  it, with recovery codes stored off the laptop (step 1.6, before 1.7). DigitalPlat, which
+  holds the domain, had no two-factor option when checked (2026-11-12), so its password is
+  unique and the sign-up email account has two-factor, since that email can reset the
+  password.
+- **The tunnel's keys are split by power.** `cert.pem` (account level) stays on the laptop
+  and never goes to a server. Only the tunnel token, which can run this one tunnel, goes
+  to the server in `.env`. A leaked token means deleting and recreating the tunnel; a
+  leaked `cert.pem` means revoking it in the dashboard and logging in again. (Step 1.6, D19)
 - **The editor and SSH are reachable only over Tailscale**, a private network between your
   own devices. (Step 1.13)
 
@@ -61,6 +73,7 @@ reach the editor. (Step 1.3 locally, 1.13 to see the trap on purpose, 1.14 for t
 | Strong owner password, and two-factor login if n8n offers it (**confirm**) | 1.3 |
 | `N8N_ENCRYPTION_KEY` set by hand, kept in `.env`, backed up outside the server | 1.3 |
 | Image pinned to an exact version, upgraded on purpose after reading release notes | 1.3 |
+| n8n gets only the environment variables it needs. Today `env_file: .env` also hands it `TUNNEL_TOKEN` and the Shopify secret, which a Code node could read. Either list its variables one by one (as the `cloudflared` service does) or block environment access from nodes (**confirm** n8n's setting, believed to be `N8N_BLOCK_ENV_ACCESS_IN_NODE`, and its default) | 1.13 |
 | Webhook signature (HMAC) checked before anything else runs | 1.8 |
 | Duplicate deliveries ignored | 1.9 |
 | Workflow exports checked for secrets before committing | 1.12 |

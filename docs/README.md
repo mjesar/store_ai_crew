@@ -15,9 +15,9 @@ Pages for phases 2 to 4 are added when each phase starts.
 
 ## Picking the project back up
 
-1. Read the "Current status" line in [`../CLAUDE.md`](../CLAUDE.md).
-2. Open that phase's page and find the first unticked step.
-3. Check [DECISIONS.md](DECISIONS.md) for an open question tied to that step.
+1. Open the current phase's page (see the Status line at its top) and find the first
+   unticked step.
+2. Check [DECISIONS.md](DECISIONS.md) for an open question tied to that step.
 
 ## Conventions
 
@@ -27,4 +27,8 @@ Pages for phases 2 to 4 are added when each phase starts.
   "confirm" and listed in DECISIONS.md.
 - **The repo is the source of truth.** If a page and the running system disagree, fix the
   page.
-- **Written for a stranger.** No shorthand that only makes sense with the chat history.
+- **Written for a stranger.** Three readers: someone learning to build the same thing, a
+  reviewer or hiring manager judging the work, and the author months later. Every
+  sentence should help one of them. Decisions with reasons, what broke, real proof and
+  concepts go in; personal circumstances and session chatter stay out. No shorthand
+  that only makes sense with the chat history.

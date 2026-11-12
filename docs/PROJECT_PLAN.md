@@ -18,8 +18,8 @@ owner ever seeing it.
 test is how features get rejected. Anything that fails it goes in the extras list
 (section 8) and waits until phase 4 is done.
 
-**What kind of project this is:** a portfolio and learning project. Mohammad writes all the
-code and config. It is built in four phases, and each phase ends in something that can be
+**What kind of project this is:** a portfolio and learning project. All code and config are
+written by hand, one small step at a time. It is built in four phases, and each phase ends in something that can be
 shown working, with a written post about what was learned.
 
 **Why this project:**
@@ -107,7 +107,7 @@ The same compose file is used in all three places.
 | Server rehearsal | Multipass VM (Ubuntu LTS) | Free, behaves like a real remote server, mistakes cost nothing |
 | Server, cloud | Oracle Cloud Always Free | Free, always on |
 | Deploy | Docker Compose for n8n, Kamal for the Rails app | Kamal is the Rails 8 default |
-| Public URL for webhooks | Cloudflare Tunnel | Shopify needs an HTTPS address to call |
+| Public URL for webhooks | Cloudflare Tunnel on the free domain `mjesar.dpdns.org`, `cloudflared` as a compose service (D18) | Shopify needs an HTTPS address to call; the address stays the same on every machine |
 | Private access | Tailscale | SSH to the server without opening ports |
 
 **Constraint: free tiers only.** Each tier's terms get checked at the step that first uses
