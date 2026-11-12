@@ -101,7 +101,10 @@ Phase 2 must settle where the agents' store tools come from (Q1 in `DECISIONS.md
 Phase 1, step 1.6: public HTTPS address for n8n (Cloudflare Tunnel, `hooks.mjesar.dpdns.org`,
 D18). Domain on Cloudflare, nameservers live. Dashboard tunnels need Zero Trust, which asks
 for a card (not entered). `cloudflared` 2026.11.0 installed on the laptop (apt, CLI for setup
-only), so next: `cloudflared tunnel login`, stop if it asks for a card. Mohammad wants to understand the
+only), `cloudflared tunnel login` done, no card asked.
+Tunnel `store-ai-crew` (`48bdbbd9-e1c4-4eaf-9605-ff0ec1cd3894`) created, `hooks.mjesar.dpdns.org` routed to it (CNAME, proxied).
+`cloudflared/config.yml` ingress rules
+written and checked. Next: the `cloudflared` compose service. Mohammad wants to understand the
 DNS and tunnel picture better first (CONCEPTS.md, Networking). Cloudflare two-factor still
 to do before 1.7. Domain expires 2027-11-11, renew
 from about 2027-07-14. Steps 1.1 to 1.5

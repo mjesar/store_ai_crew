@@ -120,8 +120,11 @@ in all three places. See D8 in [../DECISIONS.md](../DECISIONS.md).
     can filter by path for a tunnel managed from the dashboard.
   - Progress (2026-11-12): domain registered, on Cloudflare, nameservers live (zone was
     still Pending in the dashboard at sign-off). Zero Trust card page reached and closed.
-    `cloudflared` 2026.11.0 installed on the laptop. **Next: `cloudflared tunnel login`,
-    and stop if it asks for a card.**
+    `cloudflared` 2026.11.0 installed on the laptop; `cloudflared tunnel login` authorized
+    `mjesar.dpdns.org` with no card asked. Tunnel `store-ai-crew` created
+    (`48bdbbd9-e1c4-4eaf-9605-ff0ec1cd3894`), `hooks.mjesar.dpdns.org` routed to it.
+    `cloudflared/config.yml` written and checked (webhooks and `/healthz` to n8n, the rest
+    404). **Next: the `cloudflared` compose service.**
   - Done when: opening `https://hooks.mjesar.dpdns.org/healthz` in your phone's browser on
     mobile data (so the request really comes from outside) gets a reply from n8n, and the
     editor's address there is refused.
@@ -290,3 +293,7 @@ Real runs only. If a number has not been measured, it does not go here.
 | 2026-11-12 | 1.5: Dev Dashboard app `Store AI Crew` (custom distribution, scopes `read_products,read_inventory`, no redirect URLs, not embedded) installed on the store. Token from the client credentials grant, then a GraphQL `products(first: 10)` query on Admin API `2026-10` with `curl` | Token reply: `scope` `read_inventory,read_products`, `expires_in` 86399. Query returned 10 products with `totalInventory`, `tracksInventory` and inventory item IDs, including Hydrogen (3) and Compare at Price (5). Query cost 26 of 20000 available. Note: most sample products also track stock, some at 0 |
 | 2026-11-12 | 1.6 (part): free domain `mjesar.dpdns.org` (DigitalPlat) added to Cloudflare's free plan; DigitalPlat nameservers replaced with `nataly.ns.cloudflare.com` and `nitin.ns.cloudflare.com` | `dig NS mjesar.dpdns.org @1.1.1.1` and the parent's `ns1.digitalplat.org` both return the two Cloudflare nameservers, minutes after the change |
 | 2026-11-12 | 1.6 (part): `cloudflared` CLI from Cloudflare's apt repository (pkg.cloudflare.com, suite `any`, the recommended one; no 26.04-specific suite exists). Used only for setup (login, create, route dns); the tunnel itself runs from the `cloudflare/cloudflared` image | `cloudflared --version` prints `2026.11.0 (built 2026-11-12-12:17 UTC)`, the latest GitHub release (published the same day) |
+| 2026-11-12 | 1.6 (part): `cloudflared tunnel login`, zone `mjesar.dpdns.org` chosen and authorized in the browser | Browser: "Cloudflared has installed a certificate allowing your origin to create a Tunnel on this zone." No Zero Trust activation and no card or PayPal asked |
+| 2026-11-12 | 1.6 (part): `cloudflared tunnel create store-ai-crew`, one tunnel per project since the domain is shared | ID `48bdbbd9-e1c4-4eaf-9605-ff0ec1cd3894`, created 17:07:50 UTC, credentials file `~/.cloudflared/<id>.json` (secret, outside the repo). `cert.pem` is `-rw-------`. `cloudflared tunnel list` shows it with no connections yet |
+| 2026-11-12 | 1.6 (part): `cloudflared tunnel route dns store-ai-crew hooks.mjesar.dpdns.org` | "Added CNAME hooks.mjesar.dpdns.org which will route to this tunnel" (17:16:52 UTC). `dig +short hooks.mjesar.dpdns.org @1.1.1.1` returns Cloudflare proxy IPs `104.21.15.170` and `172.67.163.80`, so the record is public and proxied |
+| 2026-11-12 | 1.6 (part): `cloudflared/config.yml`: rule `^/webhook/` and rule `^/healthz$` on `hooks.mjesar.dpdns.org` to `http://n8n:5678`, catch-all `http_status:404` | `ingress validate` prints OK. `ingress rule .../signin` matches rule #2 (the 404 catch-all; rules count from 0), `ingress rule .../webhook/inventory-update` matches rule #0 to `http://n8n:5678`. So the editor is not reachable through the tunnel, and path rules do work on a locally-managed tunnel |

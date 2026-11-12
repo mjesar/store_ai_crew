@@ -32,7 +32,8 @@ documentation.
 - **No open inbound ports.** `cloudflared` connects outward from the server, so the
   server firewall can block all incoming traffic. (Step 1.6, 1.14; D18)
 - **Only the webhook path is public.** The tunnel forwards only n8n's webhook URLs (and
-  `/healthz`), not the editor. **Confirm** that tunnel ingress rules can filter by path.
+  `/healthz`), not the editor. Confirmed 2026-11-12: `cloudflared tunnel ingress rule` sends `/signin`
+  to the 404 catch-all and `/webhook/...` to n8n.
   (Step 1.6)
 - **The Cloudflare account controls the public address.** Two-factor authentication on
   it, and on the DigitalPlat account that holds the domain. (Step 1.6)
