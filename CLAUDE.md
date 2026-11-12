@@ -117,6 +117,9 @@ Rules:
   out as a dependency", not "Mohammad ruled out a VPN").
 - Follow `~/.claude/skills/mjesar-context/references/writing-voice.md` (no em dashes,
   plain words, short sentences, lead with why) and the README playbook there.
+- Diagrams and charts where a picture explains faster than text (request flow, the
+  agent loop, pass rate over time), added when a doc needs one, not up front. SVG
+  where possible, each with a `<details>` text version, as in the README playbook.
 - Code comments say why a line is there, not what it does.
 - Commit messages: lowercase, single line, no trailing period. PR descriptions: lead
   with why, a few sentences, no file-by-file list.
