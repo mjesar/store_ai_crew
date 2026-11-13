@@ -1,6 +1,6 @@
 # Phase 1: Backbone (no AI)
 
-**Status:** in progress, started 2026-11-11. Current step: 1.8.
+**Status:** in progress, started 2026-11-11. Current step: 1.9.
 
 **Environment:** parts A to E run locally on the laptop, part F on a server.
 
@@ -138,7 +138,7 @@ in all three places. See D8 in [../DECISIONS.md](../DECISIONS.md).
 
 ### Part D: making it trustworthy
 
-- [ ] **1.8 Verify the signature**
+- [x] **1.8 Verify the signature** (done 2026-11-14)
   - Goal: reject anything that did not come from Shopify. The address is public, so anyone
     who finds it can post to it.
   - Build: Shopify signs each webhook with an HMAC-SHA256 of the raw request body, using
@@ -147,6 +147,19 @@ in all three places. See D8 in [../DECISIONS.md](../DECISIONS.md).
   - Watch out: the signature is over the raw bytes of the body. If n8n parses the JSON
     first and you sign the re-serialized version, it will not match.
   - Done when: a real webhook passes, and a `curl` POST with a made-up body is rejected.
+  - As built: Webhook node with the **Raw Body** option, so the exact bytes arrive as the
+    binary property `data`. Then a Crypto node, action **Hmac**, Binary File on, property
+    `data`, SHA256, Base64, secret from a Crypto credential (D21), result in
+    `computedHmac`. Then an If node: `{{ $json.computedHmac }}` is equal to
+    `{{ $json.headers['x-shopify-hmac-sha256'] }}`, strict types, case-sensitive (Base64
+    is). True carries on (1.10); false goes to **Stop and Error** "Webhook signature
+    mismatch", so a forged request shows as a failed execution. A missing header also
+    lands on false.
+  - Known limits: the caller still gets `200 {"message":"Workflow was started"}`, because
+    the Webhook node answers before the check runs, so the rejection is visible in n8n,
+    not to the sender (revisit with the reply timing at 1.11). The If node's comparison is
+    not constant-time, unlike Shopify's examples; over the internet and through
+    Cloudflare the timing difference is buried in network noise, so it is accepted here.
 
 - [ ] **1.9 Handle duplicates**
   - Goal: one stock change, one alert. Shopify promises to deliver each event at least
@@ -248,6 +261,9 @@ Short version here, full reasoning in [../DECISIONS.md](../DECISIONS.md).
   `cloudflared` as a compose service, so laptop, VM and Oracle use the same address.
 - D19 (1.6): the tunnel container gets its secret as a token from `.env`, not as a
   mounted credentials file.
+- D20 (1.7): webhooks subscribed shop-specific with `webhookSubscriptionCreate`.
+- D21 (1.8): the webhook signing secret lives in an n8n Crypto credential, and the
+  built-in Crypto node computes the HMAC.
 
 ## What broke
 
@@ -322,3 +338,6 @@ Real runs only. If a number has not been measured, it does not go here.
 | 2026-11-13 | 1.7 (part): n8n workflow `Low stock alert`, Webhook node `POST` at path `shopify/inventory-levels-update`, Respond Immediately, published. Test `curl -X POST` with a dummy JSON body through the tunnel | `{"message":"Workflow was started"}`, HTTP 200 |
 | 2026-11-13 | 1.7 (part): token into a shell variable (`TOKEN=$(curl ... \| jq -r .access_token)`, only its length printed), then `webhookSubscriptionCreate` on Admin API `2026-10`, topic `INVENTORY_LEVELS_UPDATE`, `uri` the production URL, format JSON (D20) | Subscription `gid://shopify/WebhookSubscription/1722870104225`, `apiVersion` `2026-10`, `userErrors` empty. Query cost 10 |
 | 2026-11-13 | 1.7: stock of The Collection Snowboard: Hydrogen changed from 3 to 2 in Shopify admin | Production execution #7 in n8n, succeeded in 17 ms. Headers: `user-agent: Shopify-Captain-Hook`, `host: hooks.mjesar.dpdns.org`, `cdn-loop: cloudflare`. Body: `inventory_item_id` 48683436081313, `location_id` 81985503393, `available` 2, `updated_at`, `admin_graphql_api_id` (an `InventoryLevel` gid). No product title or variant in the payload |
+| 2026-11-14 | 1.8 (part): Crypto credential with the app's client secret as Hmac Secret (D21). Raw Body on in the Webhook node, Crypto node Hmac over binary `data` (SHA256, Base64). Stock changed in Shopify admin | Production execution #9 succeeded in 43 ms. `computedHmac` equal to the `x-shopify-hmac-sha256` header, so signing the raw bytes with the client secret reproduces Shopify's signature |
+| 2026-11-14 | 1.8: If node compares the two, false goes to Stop and Error. Stock of the same item changed to 3 | Execution #10 succeeded in 111 ms, If node output: True Branch (1 item), Stop and Error not run |
+| 2026-11-14 | 1.8: forged request, `curl -i -X POST` to the production URL with body `{"inventory_item_id":1,"available":0}` and header `X-Shopify-Hmac-Sha256: bm90LWEtcmVhbC1zaWduYXR1cmU=` (Base64 of `not-a-real-signature`) | curl: `HTTP/2 200`, `{"message":"Workflow was started"}`. In n8n the execution failed: If went false, Stop and Error "Webhook signature mismatch" |

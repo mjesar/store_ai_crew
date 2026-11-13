@@ -126,8 +126,9 @@ Rules:
 
 ## Current status
 
-Phase 1, step 1.8 (verify the webhook signature). Step 1.7 is done: workflow `Low stock
+Phase 1, step 1.9 (handle duplicate deliveries). Step 1.8 is done: workflow `Low stock
 alert` (published) receives Shopify's `inventory_levels/update` webhook at
 `https://hooks.mjesar.dpdns.org/webhook/shopify/inventory-levels-update` (shop-specific
-subscription, D20). Details in `docs/phases/01-backbone.md`. Update this line as steps
-complete.
+subscription, D20) and checks its HMAC signature (Crypto credential, D21) before
+anything else; the If node's true branch is where 1.10 continues. Details in
+`docs/phases/01-backbone.md`. Update this line as steps complete.
