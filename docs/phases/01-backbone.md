@@ -180,9 +180,11 @@ in all three places. See D8 in [../DECISIONS.md](../DECISIONS.md).
   - Goal: the repo is the source of truth. n8n stores workflows in its own database, which
     is not in git.
   - Build: export each workflow as JSON into `n8n/workflows/`. Check that no secret is in
-    the export. Write down how to import them into a fresh n8n.
-  - Done when: a brand new n8n container can be brought to the same state from the repo
-    plus `.env`.
+    the export. Write down how to import them into a fresh n8n. Also keep the Shopify
+    webhook subscription as a small script (D20), since it lives in Shopify, not in n8n or
+    the repo.
+  - Done when: a brand new n8n container, and a fresh webhook subscription, can be brought
+    to the same state from the repo plus `.env`.
 
 ### Part F: from laptop to server
 
