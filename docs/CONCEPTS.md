@@ -144,6 +144,25 @@ went wrong. Notes come from doing the step, not from reading about it.
 - **Why a public HTTPS address is needed, and what a tunnel does** (1.6).
 - **Signature verification (HMAC)** (1.8): proving who sent a request, and why it must be
   computed over the raw body.
+
+  The webhook address is public, so anyone can post to it. Shopify and the app share one
+  secret (the app's client secret). For each delivery Shopify runs HMAC-SHA256 over the
+  body with that secret and sends the result, Base64-encoded, in the
+  `X-Shopify-Hmac-Sha256` header. The receiver runs the same function over the body it
+  got, with its copy of the secret, and compares. Without the secret nobody can produce
+  a matching value, and changing a single byte of the body changes the whole result. So
+  a match proves two things: the sender knew the secret, and the body was not altered.
+
+  A plain hash (SHA-256 alone) would prove nothing, because anyone can compute it. The
+  secret is what turns a checksum into a signature.
+
+  It must be the raw body: the exact bytes that arrived. Parsing the JSON and turning it
+  back into text can change spacing, key order or how characters are escaped, and then
+  the HMAC no longer matches even though the data is the same. In n8n that is the
+  Webhook node's **Raw Body** option.
+
+  Two smaller points: compare case-sensitively (Base64 uses both cases), and a missing
+  header must count as a failure, not be skipped.
 - **At-least-once delivery and idempotency** (1.9): why the same event can arrive twice,
   and how to make handling it twice harmless.
 - **Answer fast, work later** (1.11): why the reply to Shopify comes before the slow steps.
