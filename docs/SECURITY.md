@@ -37,10 +37,10 @@ documentation.
   `/healthz`), not the editor. Checked 2026-11-12/13: `/signin` gets the tunnel's 404
   catch-all and `/webhook/...` reaches n8n. (Step 1.6)
 - **The Cloudflare account controls the public address.** Two-factor authentication on
-  it, with recovery codes stored off the laptop (step 1.6, before 1.7). DigitalPlat, which
-  holds the domain, had no two-factor option when checked (2026-11-12), so its password is
-  unique and the sign-up email account has two-factor, since that email can reset the
-  password.
+  it, with recovery codes stored off the laptop (step 1.6, before 1.7). Two-factor on the
+  DigitalPlat account that holds the domain as well (on by 2026-11-13; it was not
+  available when first checked on 2026-11-12). The sign-up email account also has
+  two-factor, since that email can reset either password.
 - **The tunnel's keys are split by power.** `cert.pem` (account level) stays on the laptop
   and never goes to a server. Only the tunnel token, which can run this one tunnel, goes
   to the server in `.env`. A leaked token means deleting and recreating the tunnel; a
