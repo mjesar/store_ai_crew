@@ -165,6 +165,31 @@ went wrong. Notes come from doing the step, not from reading about it.
   header must count as a failure, not be skipped.
 - **At-least-once delivery and idempotency** (1.9): why the same event can arrive twice,
   and how to make handling it twice harmless.
+
+  A sender only knows a delivery worked when it gets the reply. If the reply is lost or
+  late (a timeout, a dropped connection), the sender cannot tell "never arrived" from
+  "arrived, but the answer got lost", so it sends again. Shopify chooses to resend: a
+  missed event is worse than a repeated one. That is **at-least-once** delivery. Exactly
+  once is not something a sender can promise over a network, so the receiver has to make
+  a repeat harmless.
+
+  Handling something twice with the same effect as once is called **idempotency**. Two
+  ways to get it:
+  1. Make the action itself safe to repeat ("set stock to 2" is; "send a Slack message"
+     is not).
+  2. Remember what was already handled and skip repeats. That needs an ID that stays the
+     same on every resend. Shopify sends one per delivery in `X-Shopify-Webhook-Id`.
+
+  An alert cannot be made repeat-safe, so this project uses the second way: n8n's Remove
+  Duplicates node keeps the IDs it has seen and drops an item whose ID is already known.
+  Two details matter. The memory has to outlive a restart, or a retry arriving after one
+  gets through (tested: it does survive). And the check comes after the signature check,
+  so only IDs Shopify really sent are remembered.
+
+  A replay attack is the same thing done on purpose: someone captures a real signed
+  request and sends it again. The signature still matches, because the body is unchanged,
+  so a signature check alone does not stop it. The duplicate check does, as long as the
+  ID is still in the history.
 - **Answer fast, work later** (1.11): why the reply to Shopify comes before the slow steps.
 - **Thin payloads** (1.7, 1.10): the event says what changed, not everything about it.
 

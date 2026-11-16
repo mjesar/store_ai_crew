@@ -1,6 +1,6 @@
 # Phase 1: Backbone (no AI)
 
-**Status:** in progress, started 2026-11-11. Current step: 1.9.
+**Status:** in progress, started 2026-11-11. Current step: 1.10.
 
 **Environment:** parts A to E run locally on the laptop, part F on a server.
 
@@ -161,12 +161,30 @@ in all three places. See D8 in [../DECISIONS.md](../DECISIONS.md).
     not constant-time, unlike Shopify's examples; over the internet and through
     Cloudflare the timing difference is buried in network noise, so it is accepted here.
 
-- [ ] **1.9 Handle duplicates**
+- [x] **1.9 Handle duplicates** (done 2026-11-16)
   - Goal: one stock change, one alert. Shopify promises to deliver each event at least
     once, which means sometimes twice.
-  - Build: each delivery carries an ID in its headers (**confirm** the exact header name).
+  - Build: each delivery carries an ID in its headers (confirmed: `X-Shopify-Webhook-Id`).
     Remember handled IDs and end the run early on a repeat. Decide where to remember them.
   - Done when: replaying the same delivery twice sends one Slack message.
+  - As built: on the If node's true branch, a **Remove Duplicates** node named
+    `Skip repeat deliveries`, operation **Remove Items Processed in Previous
+    Executions**, Keep Items Where **Value Is New**, value
+    `{{ $json.headers['x-shopify-webhook-id'] }}` (n8n lowercases header names), scope
+    Node, history size 10,000 (the default). A repeat leaves the node with no items, so
+    the run ends there and nothing after it runs (D22).
+  - Why after the signature check: an ID is only remembered once Shopify is known to have
+    sent it. Placed first, anyone could post made-up IDs to the public URL and fill the
+    history.
+  - Tested by replaying a real delivery with `curl` (same raw body, same signature, same
+    webhook ID): the replay passes the signature check and is discarded, also after
+    restarting n8n. There is no Slack node yet; 1.10 adds it after this node, so a
+    discarded repeat never reaches it.
+  - Known limits: the history holds the last 10,000 IDs. Shopify retries a failed
+    delivery 8 times over 4 hours, so a repeat would have to arrive after 10,000 newer
+    deliveries to get through, which a single store will not reach in 4 hours. Whether
+    runs from the editor's test URL share this history was not tested; Shopify only calls
+    the production URL.
 
 - [ ] **1.10 Threshold, product lookup and the alert**
   - Goal: a useful message, only when it matters.
@@ -264,6 +282,8 @@ Short version here, full reasoning in [../DECISIONS.md](../DECISIONS.md).
 - D20 (1.7): webhooks subscribed shop-specific with `webhookSubscriptionCreate`.
 - D21 (1.8): the webhook signing secret lives in an n8n Crypto credential, and the
   built-in Crypto node computes the HMAC.
+- D22 (1.9): duplicate deliveries are caught by n8n's built-in Remove Duplicates node on
+  `X-Shopify-Webhook-Id`, with the history kept in n8n's own database.
 
 ## What broke
 
@@ -312,6 +332,21 @@ most useful section for the post, so write it when it happens.
   broke, by reading the image's Dockerfile (`USER 65532:65532`). Fix: pass the same secret
   as a token in `TUNNEL_TOKEN` from `.env` (D19), then prove the local ingress rules still
   apply with a token.
+- **2026-11-16, step 1.9: the first replay failed the signature check.** The replay sent
+  the original body and the original signature, yet the If node went false. Two values
+  n8n already had told which half was wrong: the Crypto node's `computedHmac` in the
+  original run and in the replay were identical, so the body bytes matched and the
+  signature header had been copied wrong. With the header copied from the original run's
+  `computedHmac` (equal to Shopify's header, since that run passed), the replay passed.
+  Lesson: when a signature fails, compare the computed values first; they separate "the
+  body changed" from "the signature changed" in one look.
+- **2026-11-16, step 1.9: no way to download the raw body from an execution.** In n8n
+  2.47.4 the Webhook node's binary `data` card in a past execution offers only **View**.
+  The body was copied from the viewer and written with `printf '%s' '...' > file`, which
+  adds no trailing newline (an editor usually adds one, and one extra byte breaks the
+  signature). The escaped slashes Shopify sends (`gid:\/\/shopify`) were still in the
+  viewer's text, a sign it showed the raw bytes and not re-serialized JSON. `curl` then
+  sent it with `--data-binary`, because `-d` strips newlines.
 
 ## Proof
 
@@ -341,3 +376,6 @@ Real runs only. If a number has not been measured, it does not go here.
 | 2026-11-14 | 1.8 (part): Crypto credential with the app's client secret as Hmac Secret (D21). Raw Body on in the Webhook node, Crypto node Hmac over binary `data` (SHA256, Base64). Stock changed in Shopify admin | Production execution #9 succeeded in 43 ms. `computedHmac` equal to the `x-shopify-hmac-sha256` header, so signing the raw bytes with the client secret reproduces Shopify's signature |
 | 2026-11-14 | 1.8: If node compares the two, false goes to Stop and Error. Stock of the same item changed to 3 | Execution #10 succeeded in 111 ms, If node output: True Branch (1 item), Stop and Error not run |
 | 2026-11-14 | 1.8: forged request, `curl -i -X POST` to the production URL with body `{"inventory_item_id":1,"available":0}` and header `X-Shopify-Hmac-Sha256: bm90LWEtcmVhbC1zaWduYXR1cmU=` (Base64 of `not-a-real-signature`) | curl: `HTTP/2 200`, `{"message":"Workflow was started"}`. In n8n the execution failed: If went false, Stop and Error "Webhook signature mismatch" |
+| 2026-11-16 | 1.9 (part): `Skip repeat deliveries` (Remove Duplicates) added on the If node's true branch, published. Stock of The Collection Snowboard: Hydrogen changed to 2 in Shopify admin | Execution #13 succeeded in 200 ms. Headers include `x-shopify-webhook-id: e1cbe77c-bf2a-5c7d-9d9c-74f0fc222b8d`. Remove Duplicates output: Kept (1 item) |
+| 2026-11-16 | 1.9 (part): replay of #13 with `curl -i -X POST` to the production URL, body from #13 (221 bytes, `--data-binary`), headers `X-Shopify-Hmac-Sha256` and `X-Shopify-Webhook-Id` from #13 | curl: `HTTP/2 200`. Execution #15 succeeded in 51 ms: `content-length: 221`, `user-agent: curl/8.18.0`, If true, Remove Duplicates output: Kept empty, Discarded (1 item) |
+| 2026-11-16 | 1.9: `docker compose restart n8n`, then the same replay | Execution #16 succeeded in 284 ms, If true, Remove Duplicates: Discarded (1 item). The history survives a restart, so it is stored in n8n's database on the `n8n_data` volume |

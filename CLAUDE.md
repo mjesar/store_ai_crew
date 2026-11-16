@@ -126,9 +126,10 @@ Rules:
 
 ## Current status
 
-Phase 1, step 1.9 (handle duplicate deliveries). Step 1.8 is done: workflow `Low stock
-alert` (published) receives Shopify's `inventory_levels/update` webhook at
+Phase 1, step 1.10 (threshold, product lookup and the alert). Step 1.9 is done: workflow
+`Low stock alert` (published) receives Shopify's `inventory_levels/update` webhook at
 `https://hooks.mjesar.dpdns.org/webhook/shopify/inventory-levels-update` (shop-specific
-subscription, D20) and checks its HMAC signature (Crypto credential, D21) before
-anything else; the If node's true branch is where 1.10 continues. Details in
+subscription, D20), checks its HMAC signature (Crypto credential, D21), then drops repeat
+deliveries with the Remove Duplicates node `Skip repeat deliveries` on
+`X-Shopify-Webhook-Id` (D22). 1.10 continues from that node's output. Details in
 `docs/phases/01-backbone.md`. Update this line as steps complete.
