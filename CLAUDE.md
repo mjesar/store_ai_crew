@@ -76,7 +76,7 @@ that step.
 - `docs/PROJECT_PLAN.md`: the whole plan, phases, architecture, extras.
 - `docs/phases/NN-*.md`: the current phase's step checklist. The first unticked step
   is where to continue.
-- `docs/DECISIONS.md`: decisions with reasons, open questions (Q1 to Q9), and facts
+- `docs/DECISIONS.md`: decisions with reasons, open questions, and facts
   still to confirm against current documentation.
 - `docs/CONCEPTS.md`: learning notes, filled in when each idea is first met.
 
