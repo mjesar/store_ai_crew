@@ -110,6 +110,28 @@ went wrong. Notes come from doing the step, not from reading about it.
   can do is post in channels it has been invited to. That is why the channel is given
   **by ID** in the Slack node: picking it from a list would need an extra read scope
   (`channels:read`). A stolen token with one scope can do little damage.
+- **Branches, and where a run ends** (1.10): an If node sends each item out of its
+  **true** or its **false** output. An output with nothing connected is a quiet stop: the
+  item goes nowhere and the run ends as a success. That is how a stock change above the
+  threshold "sends nothing" without any extra node.
+- **Expressions and `$('Node name')`** (1.10): a field in Expression mode is plain text
+  except what sits inside `{{ }}`, which is JavaScript evaluated on every run. `$json` is
+  the item that came into *this* node, which changes as the item moves along: after
+  `Get Shopify token`, `$json` is the token reply, not the webhook. To reach an earlier
+  node's data, name it: `$('Shopify inventory webhook').item.json.body.inventory_item_id`.
+  That is why node names are worth choosing well; they are part of the code. Renaming a
+  node rewrites the expressions that point at it.
+- **Saved is not published** (1.10): saving changes the draft in the editor. The
+  production webhook URL always runs the **published** version, so a real Shopify
+  delivery ignores unpublished work.
+- **Cheap checks first** (1.10): order a workflow so that steps that cost nothing (the
+  signature, the duplicate check, the threshold) come before steps that call another
+  service. Most stock changes stop at the threshold and never touch Shopify's API, runs
+  that stop early answer in milliseconds, and a forged request can never make the
+  workflow use a secret.
+- **Locking a credential to one host** (1.10): n8n credentials have "Allowed HTTP Request
+  Domains". Set to the store's exact host, n8n refuses to attach the client secret to a
+  request anywhere else, so a typo in a URL cannot leak it.
 - **Trigger nodes** (1.4, 1.7): manual, webhook, schedule.
 - **Test URL vs production URL** (1.7): why a webhook node has two addresses.
 - **Error workflows and retries** (1.11).
@@ -137,6 +159,19 @@ went wrong. Notes come from doing the step, not from reading about it.
   location. So reading stock needs `read_inventory`, and naming the product in an alert
   needs `read_products`. The webhook at 1.7 only carries the inventory item ID, which is
   why the query asks for `inventoryItem { id }`.
+- **A token per run** (1.10): with no refresh token, the simplest safe pattern is to ask
+  for a new token right before the call that needs it, use it once and let it expire.
+  There is nothing to store between runs and nothing that goes stale. The client ID and
+  secret stay in an n8n credential, and the token itself is short-lived and read only.
+- **GraphQL from n8n** (1.10): a GraphQL call is always a `POST` with a JSON body of two
+  keys, `query` and `variables`. Values go in as variables (`$id: ID!`), not pasted into
+  the query text, the same idea as parameterized SQL: Shopify checks the type, and data
+  from a webhook cannot change the shape of the query. Shopify's GraphQL IDs name the
+  type (`gid://shopify/InventoryItem/48683436081313`), while webhooks and admin URLs use
+  the bare number, which GraphQL also returns as `legacyResourceId`. Every query has a
+  cost in points from a bucket that refills each second (`extensions.cost`); this lookup
+  costs 3 of 20,000. And a bad query still answers HTTP 200, with the problem in an
+  `errors` array, so "the node is green" does not mean "the data is there".
 
 ### Webhooks
 

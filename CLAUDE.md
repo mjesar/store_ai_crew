@@ -126,10 +126,9 @@ Rules:
 
 ## Current status
 
-Phase 1, step 1.10 (threshold, product lookup and the alert). Step 1.9 is done: workflow
-`Low stock alert` (published) receives Shopify's `inventory_levels/update` webhook at
-`https://hooks.mjesar.dpdns.org/webhook/shopify/inventory-levels-update` (shop-specific
-subscription, D20), checks its HMAC signature (Crypto credential, D21), then drops repeat
-deliveries with the Remove Duplicates node `Skip repeat deliveries` on
-`X-Shopify-Webhook-Id` (D22). 1.10 continues from that node's output. Details in
-`docs/phases/01-backbone.md`. Update this line as steps complete.
+Phase 1, step 1.11 (when things fail). Step 1.10 is done: after `Skip repeat deliveries`,
+workflow `Low stock alert` checks `available` against 5 (`Below threshold?`), and below it
+fetches a fresh Shopify token (`Get Shopify token`, Custom Auth credential locked to the
+store's host, D23), looks up the product over GraphQL (`Look up product`), and posts to
+Slack with an admin link (`Send low stock alert`). Every change below the threshold
+alerts (D24). Details in `docs/phases/01-backbone.md`. Update this line as steps complete.
