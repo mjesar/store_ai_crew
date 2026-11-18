@@ -94,6 +94,9 @@ reach the editor. (Step 1.3 locally, 1.13 to see the trap on purpose, 1.14 for t
 - The API token gets the fewest scopes that work (read products and inventory in phase 1).
   Write scopes are added only in the phase that needs them, and recorded in DECISIONS.md.
   (Step 1.5)
+- The client ID and secret live in an n8n Custom Auth credential, not in a node, and the
+  credential may only be sent to the store's own `myshopify.com` host ("Allowed HTTP
+  Request Domains", one exact host, no wildcard). (Step 1.10, D23)
 
 ## Slack
 

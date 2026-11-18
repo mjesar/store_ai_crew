@@ -29,6 +29,8 @@ then move up into the decisions table.
 | D20 | 2026-11-13 | Shopify webhooks are subscribed shop-specific, with the GraphQL `webhookSubscriptionCreate` mutation (Admin API `2026-10`) run with `curl` and the client credentials token from 1.5, not app-specific in `shopify.app.toml`. | Shopify's docs recommend app-specific subscriptions for apps installed on many shops; this app acts on one dev store. The GraphQL route needs no new tools (the TOML route needs the Shopify CLI linked to the Dev Dashboard app and a `shopify app deploy` per change), and the mutation can be kept as a small script in the repo so it is repeatable. For a shop-specific subscription the payload's API version is the one in the request URL. Topic `INVENTORY_LEVELS_UPDATE` needs `read_inventory`, already granted. |
 | D21 | 2026-11-14 | The webhook signing secret (the `Store AI Crew` app's client secret) lives in an n8n **Crypto credential**, and the built-in Crypto node computes the HMAC-SHA256 of the raw body as Base64. | Compared with `.env` read through `$env` in a Code node: that would let every node read every env var n8n has, against the plan to keep n8n's environment minimal (SECURITY.md), and the signing would be hand-written. Pasting the secret into a node would put it in the committed workflow JSON. n8n Variables (`$vars`) are only on Cloud Pro/Enterprise and self-hosted Business/Enterprise, and are not meant for secrets. A credential is encrypted with `N8N_ENCRYPTION_KEY` and exports only name it. Cost: a rebuild from scratch needs the secret typed in again, documented at 1.13. |
 | D22 | 2026-11-16 | Repeat deliveries are dropped by n8n's built-in **Remove Duplicates** node (operation "Remove Items Processed in Previous Executions", Value Is New) on the `X-Shopify-Webhook-Id` header, placed right after the signature check. Its history lives in n8n's own database. Answers Q6. | Shopify's docs name this header for spotting duplicates; `X-Shopify-Event-Id` is shared by every delivery from one merchant action, so it marks related deliveries, not repeats. A separate store (a PostgreSQL table, Redis, a file) would be one more thing to run and back up in a phase that has no database yet. The node's history survived a restart in testing, so a retry after a restart is still caught. Cost: only the last 10,000 IDs are kept, far more than one store sends inside Shopify's 4-hour retry window. Revisit if workflows move off n8n's database (Q8). |
+| D23 | 2026-11-18 | n8n gets a fresh Shopify token on every alert: an HTTP Request node, `Get Shopify token`, POSTs to `/admin/oauth/access_token` with the client ID and secret supplied by an n8n **Custom Auth** credential (`{"body": {...}}`), restricted to the store's host with "Allowed HTTP Request Domains". It sits on the true branch of `Below threshold?`. Answers Q9. | Client credentials tokens last 24 hours (`expires_in: 86399`) with no refresh token. Compared with n8n's OAuth2 credential (client credentials grant), which renews by itself but sends `Authorization: Bearer`, while Shopify's Admin API docs only name `X-Shopify-Access-Token`. Typing the secret into the node would put it in the committed workflow JSON; a Custom Auth credential keeps it encrypted, like D21. The domain limit means a typo or bad expression cannot send the secret to another host. On the true branch, only runs that alert pay for the extra call. Shopify accepted the body as Custom Auth sends it (tested 2026-11-18), so the documented form encoding was not needed. Cost: the token shows in saved execution data, acceptable because it is read only, expires in a day and the editor is private (D14). |
+| D24 | 2026-11-18 | Phase 1 sends an alert for every stock change below the threshold, with no "already alerted" memory. Answers Q7. | Shopify's `inventory_levels/update` payload carries only the new quantity, so "just crossed below 5" cannot be told from "was already below 5" without state kept by the workflow. Compared: a Code node keeping per-item state in n8n's workflow static data (hand-written state, reset needs the above-threshold branch too, not saved for manual test runs) and alerting only at fixed counts such as 4 and 0 (no state, but a single order taking 6 to 2 is never reported). Each repeat carries new information (the count still falling, and the sell-out at 0), and on one store the volume is low. Revisit in phase 2: once the ops agent drafts reorders, the useful rule is "no alert while a reorder for this item is waiting for approval", which needs the phase 2 database (Q8) anyway. |
 | D12 | 2026-11-11 | Competitors for the mystery shopper idea were not researched. | This is for portfolio and learning, so whether a product already exists does not change the plan. |
 
 ## Open questions
@@ -69,11 +71,6 @@ endpoint, catalog API, or neither), and whether ai_shop_assistant's approach sti
 Same repo as the n8n config (in a subfolder or at the root), or its own repo. Affects how
 Kamal and Compose share one server.
 
-### Q7: do repeat low-stock alerts need suppressing in phase 1? (step 1.10)
-
-Stock going 4, 3, 2 sends three alerts for one problem. Decide whether phase 1 accepts
-that or remembers "already alerted for this product".
-
 ### Q8: which database, self-hosted or managed? (phase 2)
 
 n8n uses SQLite by default: a single file inside its Docker volume. Phase 2 adds a Rails
@@ -81,19 +78,6 @@ app that needs PostgreSQL. To decide: run PostgreSQL as a container in the same 
 file with its own volume (free, backups are our job), or use a managed free tier (like
 Heroku Postgres, backups are theirs). Also whether n8n moves from SQLite to the same
 PostgreSQL (**confirm** what n8n's docs recommend for production).
-
-### Q9: how does n8n get its Shopify token? (step 1.10)
-
-Tokens from the client credentials grant last 24 hours and there is no refresh token: you
-ask again with the client ID and secret. Options:
-
-1. Each run starts with an HTTP Request node that asks for a fresh token, and the next
-   node uses it. One extra call per run, never stale, easy to see in the execution log.
-2. n8n's generic OAuth2 credential with the client credentials grant, which fetches and
-   renews tokens by itself. **Confirm** whether n8n can send the token in Shopify's
-   `X-Shopify-Access-Token` header (or Shopify accepts `Authorization: Bearer`).
-
-Leaning to option 1. Either way it is automatic; nobody renews tokens by hand.
 
 ## Things to confirm against current documentation
 

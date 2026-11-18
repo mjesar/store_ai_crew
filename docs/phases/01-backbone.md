@@ -1,6 +1,6 @@
 # Phase 1: Backbone (no AI)
 
-**Status:** in progress, started 2026-11-11. Current step: 1.10.
+**Status:** in progress, started 2026-11-11. Current step: 1.11.
 
 **Environment:** parts A to E run locally on the laptop, part F on a server.
 
@@ -186,7 +186,7 @@ in all three places. See D8 in [../DECISIONS.md](../DECISIONS.md).
     runs from the editor's test URL share this history was not tested; Shopify only calls
     the production URL.
 
-- [ ] **1.10 Threshold, product lookup and the alert**
+- [x] **1.10 Threshold, product lookup and the alert** (done 2026-11-18)
   - Goal: a useful message, only when it matters.
   - Build: an If node on the available quantity against a threshold. Below it, look up the
     product title and variant from the inventory item ID through the Admin API, then send
@@ -196,6 +196,37 @@ in all three places. See D8 in [../DECISIONS.md](../DECISIONS.md).
     whether that is acceptable in phase 1 or needs a "already alerted" memory.
   - Done when: dropping stock below the threshold alerts once with the right product, and
     a change above the threshold sends nothing.
+  - As built, after `Skip repeat deliveries`:
+    1. **If** node `Below threshold?`: `{{ $json.body.available }}` Number "is less than"
+       `5`. A Number comparison, because as strings `"10"` sorts before `"5"`. The
+       threshold sits in the node: `$env` is to be blocked at 1.13, and n8n Variables are
+       a paid feature. The false branch is left empty, so the run simply ends there.
+    2. **HTTP Request** `Get Shopify token`: `POST` to
+       `https://<store>.myshopify.com/admin/oauth/access_token`, with the client ID and
+       secret coming from a **Custom Auth** credential (`{"body": {...}}`) that may only
+       be sent to the store's host (D23).
+    3. **HTTP Request** `Look up product`: `POST` to `/admin/api/2026-10/graphql.json`
+       with header `X-Shopify-Access-Token: {{ $('Get Shopify token').item.json.access_token }}`
+       and the query `inventoryItem(id: $id) { variant { title inventoryQuantity product
+       { title legacyResourceId } } }`. The ID goes in as a GraphQL variable, built as
+       `gid://shopify/InventoryItem/` plus the webhook's `inventory_item_id`.
+    4. **Slack** `Send low stock alert`: Message → Send, channel by ID, "Include Link to
+       Workflow" off (its link points at the private editor, D14). Text: product title,
+       units left at this location, total across locations, and
+       `<https://admin.shopify.com/store/<store>/products/<legacyResourceId>|Open in Shopify>`.
+  - Why this order: everything up to the threshold runs inside n8n and costs nothing. The
+    token and the lookup are the first calls out to Shopify, so they only happen for a
+    delivery that will alert. A forged request never reaches them, so it cannot make n8n
+    use the client secret.
+  - Repeat alerts: every change below the threshold alerts (D24), so "alerts once" in the
+    check above means once per stock change, with duplicates of the same delivery still
+    dropped by 1.9.
+  - Known limits: `available` is per location, while the alert also shows the variant's
+    total (`inventoryQuantity`), so the threshold is checked per location. A GraphQL
+    error comes back as HTTP 200 with an `errors` array, so `Look up product` stays green
+    and the alert would show empty values (a job for 1.11). The token shows in saved
+    execution data (D23). Products with no options show the variant title "Default
+    Title", which the message leaves out.
 
 - [ ] **1.11 When things fail**
   - Goal: a failure is seen, not silent.
@@ -284,6 +315,10 @@ Short version here, full reasoning in [../DECISIONS.md](../DECISIONS.md).
   built-in Crypto node computes the HMAC.
 - D22 (1.9): duplicate deliveries are caught by n8n's built-in Remove Duplicates node on
   `X-Shopify-Webhook-Id`, with the history kept in n8n's own database.
+- D23 (1.10): a fresh Shopify token on every alert, from an HTTP Request node whose
+  client ID and secret come from a domain-locked Custom Auth credential.
+- D24 (1.10): every stock change below the threshold alerts; suppression waits for
+  phase 2's reorder state.
 
 ## What broke
 
@@ -347,6 +382,16 @@ most useful section for the post, so write it when it happens.
   signature). The escaped slashes Shopify sends (`gid:\/\/shopify`) were still in the
   viewer's text, a sign it showed the raw bytes and not re-serialized JSON. `curl` then
   sent it with `--data-binary`, because `-d` strips newlines.
+- **2026-11-18, step 1.10: an edit that did not run.** After adding `Below threshold?`,
+  the first stock change ran the old version of the workflow and stopped at
+  `Skip repeat deliveries`. The node had been saved, not published, and the production
+  URL that Shopify calls always runs the published version. Lesson: after any change,
+  publish before testing with a real delivery.
+- **2026-11-18, step 1.10: a header that would have sent a word, not a token.** The first
+  value for `X-Shopify-Access-Token` was `access_token` in an Expression field without
+  `{{ }}`. n8n only evaluates what is inside the braces, so the preview under the field
+  showed the literal text, and Shopify would have answered 401. Caught by reading that
+  preview before running. Fixed with `{{ $('Get Shopify token').item.json.access_token }}`.
 
 ## Proof
 
@@ -379,3 +424,10 @@ Real runs only. If a number has not been measured, it does not go here.
 | 2026-11-16 | 1.9 (part): `Skip repeat deliveries` (Remove Duplicates) added on the If node's true branch, published. Stock of The Collection Snowboard: Hydrogen changed to 2 in Shopify admin | Execution #13 succeeded in 200 ms. Headers include `x-shopify-webhook-id: e1cbe77c-bf2a-5c7d-9d9c-74f0fc222b8d`. Remove Duplicates output: Kept (1 item) |
 | 2026-11-16 | 1.9 (part): replay of #13 with `curl -i -X POST` to the production URL, body from #13 (221 bytes, `--data-binary`), headers `X-Shopify-Hmac-Sha256` and `X-Shopify-Webhook-Id` from #13 | curl: `HTTP/2 200`. Execution #15 succeeded in 51 ms: `content-length: 221`, `user-agent: curl/8.18.0`, If true, Remove Duplicates output: Kept empty, Discarded (1 item) |
 | 2026-11-16 | 1.9: `docker compose restart n8n`, then the same replay | Execution #16 succeeded in 284 ms, If true, Remove Duplicates: Discarded (1 item). The history survives a restart, so it is stored in n8n's database on the `n8n_data` volume |
+| 2026-11-18 | 1.10 (part): If node `Below threshold?` (`available` Number less than 5), published. Stock of The 3p Fulfilled Snowboard changed from 20 to 19 | Execution #19: False Branch (1 item), `available` 19 |
+| 2026-11-18 | 1.10 (part): stock of The Collection Snowboard: Hydrogen changed to 1 | Execution #20: True Branch (1 item), False Branch empty |
+| 2026-11-18 | 1.10 (part): nodes renamed (`Shopify inventory webhook`, `Compute signature`, `Valid signature?`, `Reject bad signature`), published, stock changed | Execution #21: `Valid signature?` true, so the expressions followed the renames; `available` 3, True Branch |
+| 2026-11-18 | 1.10 (part): Custom Auth credential `Shopify client credentials`, Allowed HTTP Request Domains set to the store's host only; `Get Shopify token` on the true branch | Node green, output fields `access_token`, `scope` `read_inventory,read_products`, `expires_in` 86399. The JSON body sent by Custom Auth was accepted |
+| 2026-11-18 | 1.10 (part): `Look up product`, GraphQL `inventoryItem` on Admin API `2026-10` | Execution #23 succeeded in 1.595 s (the lookup 724 ms): product "The Collection Snowboard: Hydrogen", variant "Default Title", `inventoryQuantity` 3. Query cost 3 of 20000 available, restore rate 1000 per second |
+| 2026-11-18 | 1.10 (part): Slack node `Send low stock alert` | In `#store-alerts`: "Low stock: The Collection Snowboard: Hydrogen. 2 left at this location, 2 in total." with n8n's footer; after turning off "Include Link to Workflow", the next alert (1 left) had none |
+| 2026-11-18 | 1.10: `legacyResourceId` added to the query, admin link added to the message | `legacyResourceId` 8559151841441 (Hydrogen's product ID from 1.5). Alert "Low stock: The Collection Snowboard: Hydrogen. 3 left at this location, 3 in total. Open in Shopify"; tapping the link on the phone opened Hydrogen in Shopify |
