@@ -126,9 +126,8 @@ Rules:
 
 ## Current status
 
-Phase 1, step 1.11 (when things fail). Step 1.10 is done: after `Skip repeat deliveries`,
-workflow `Low stock alert` checks `available` against 5 (`Below threshold?`), and below it
-fetches a fresh Shopify token (`Get Shopify token`, Custom Auth credential locked to the
-store's host, D23), looks up the product over GraphQL (`Look up product`), and posts to
-Slack with an admin link (`Send low stock alert`). Every change below the threshold
-alerts (D24). Details in `docs/phases/01-backbone.md`. Update this line as steps complete.
+Phase 1, step 1.12 (workflows into the repo). Step 1.11 is done: Retry On Fail on the
+three nodes that call outside services, `Product found?` turns a GraphQL error or a missing
+item into a failed run (`Lookup failed`), and the error workflow `Failure alert` posts every
+failed production run to Slack with a run link built from `N8N_EDITOR_BASE_URL` (D25).
+Details in `docs/phases/01-backbone.md`. Update this line as steps complete.

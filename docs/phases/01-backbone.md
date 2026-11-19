@@ -1,6 +1,6 @@
 # Phase 1: Backbone (no AI)
 
-**Status:** in progress, started 2026-11-11. Current step: 1.11.
+**Status:** in progress, started 2026-11-11. Current step: 1.12.
 
 **Environment:** parts A to E run locally on the laptop, part F on a server.
 
@@ -228,7 +228,7 @@ in all three places. See D8 in [../DECISIONS.md](../DECISIONS.md).
     execution data (D23). Products with no options show the variant title "Default
     Title", which the message leaves out.
 
-- [ ] **1.11 When things fail**
+- [x] **1.11 When things fail**
   - Goal: a failure is seen, not silent.
   - Build: reply to Shopify quickly, before the slow steps (**confirm** Shopify's response
     time limit and retry policy). Add retries on the nodes that call outside services. Add
@@ -319,6 +319,9 @@ Short version here, full reasoning in [../DECISIONS.md](../DECISIONS.md).
   client ID and secret come from a domain-locked Custom Auth credential.
 - D24 (1.10): every stock change below the threshold alerts; suppression waits for
   phase 2's reorder state.
+- D25 (1.11): failures after the reply are handled in n8n: retries on the three outside
+  calls, a check that turns a GraphQL error into a failed run, and an error workflow that
+  posts every failed run to Slack.
 
 ## What broke
 
@@ -392,6 +395,20 @@ most useful section for the post, so write it when it happens.
   `{{ }}`. n8n only evaluates what is inside the braces, so the preview under the field
   showed the literal text, and Shopify would have answered 401. Caught by reading that
   preview before running. Fixed with `{{ $('Get Shopify token').item.json.access_token }}`.
+- **2026-11-19, step 1.11: a saved credential cannot be read back.** To break the Shopify
+  credential on purpose, the plan was to change one character of the client ID. But n8n
+  shows a saved Custom Auth JSON as `"client_id": "***"`, and saving the field with those
+  placeholders in it risked storing them in place of the real secret. The credential was
+  broken through its Allowed Domains instead (an `x` added to the host), which is shown
+  in plain text and is undone by deleting one character.
+- **2026-11-19, step 1.11: the failure alert's link went to a 404.** The first failure
+  alert linked to `https://hooks.mjesar.dpdns.org/workflow/.../executions/31`. n8n's
+  `UrlService.getInstanceBaseUrl()` (read in the container's own code) uses
+  `N8N_EDITOR_BASE_URL` and, when it is unset, falls back to the webhook URL. The tunnel
+  only forwards `/webhook/` and `/healthz` (1.6), so the link hit its 404, which is right
+  for a private editor and useless as a link. Fixed with
+  `N8N_EDITOR_BASE_URL=http://localhost:5678/` and `docker compose up -d`. On the server
+  (1.13) it becomes the Tailscale address.
 
 ## Proof
 
@@ -434,3 +451,6 @@ Real runs only. If a number has not been measured, it does not go here.
 | 2026-11-19 | 1.11 (part): Retry On Fail (3 tries, 2000 ms between, On Error still Stop Workflow) on `Get Shopify token`, `Look up product` and `Send low stock alert`, published. Stock of The Collection Snowboard: Hydrogen changed in Shopify admin | Execution #28 succeeded in 2.402 s, the normal alert arrived in Slack. On a good run the retries stay unused |
 | 2026-11-19 | 1.11 (part): If node `Product found?` after `Look up product` (`$json.errors` Array does not exist AND `$json.data.inventoryItem` Object exists), false to Stop and Error `Lookup failed`, published. Stock of Hydrogen changed | Execution #29 succeeded in 2.228 s: `Product found?` true (1 item) to `Send low stock alert`, `Lookup failed` not run. Alert "4 left at this location, 4 in total" |
 | 2026-11-19 | 1.11 (part): a field that does not exist (`notARealField`) added to the `Look up product` query on purpose, published, stock changed | Execution #30 failed in 1.742 s. `Look up product` stayed green (Shopify answered HTTP 200 with an `errors` array, so its retries did not fire either), `Product found?` false, `Lookup failed`: "Product lookup failed for inventory item 48683436081313: [{"message":"Field 'notARealField' doesn't exist on type 'InventoryItem'", ... "code":"undefinedField" ...}]". No Slack message with empty values |
+| 2026-11-19 | 1.11 (part): workflow `Failure alert` (Error Trigger, then Slack `Send failure alert` with Retry On Fail) published, set as the Error Workflow of `Low stock alert`. Credential broken on purpose: its Allowed Domains changed to `test-store-plus-9eiwvuh4x.myshopify.com` (the saved JSON shows only `***`, so editing it risked overwriting the secret). Stock changed | Execution #31 failed in 4.116 s, `Get Shopify token` in 4.052 s with "Domain not allowed: This credential is restricted from accessing test-store-plus-9eiwvuh4.myshopify.com", so three tries with two 2 s waits. `Failure alert` execution #32 succeeded in 776 ms; Slack: ":rotating_light: Workflow failed: Low stock alert / Node: Get Shopify token / Error: Domain not allowed: ..." with a link to run 31. The error data shows the request body as `**hidden**`, so credential values do not reach the alert. The link uses the webhook host, which the tunnel answers with 404 |
+| 2026-11-19 | 1.11 (part): Allowed Domains set back to `test-store-plus-9eiwvuh4.myshopify.com`, no restart, stock changed | Execution #33 succeeded; alert "Low stock: The Collection Snowboard: Hydrogen. 3 left at this location, 3 in total." n8n reads the credential on every run, so the fix applied at once |
+| 2026-11-19 | 1.11: `N8N_EDITOR_BASE_URL=http://localhost:5678/` in `.env`, `docker compose up -d` (n8n recreated). Credential broken the same way, stock changed, then fixed again | Failure alert for execution #34 with "Run: http://localhost:5678/workflow/z4ONkVq96wVwMmsL/executions/34", which opens the failed run in the editor on the laptop |
