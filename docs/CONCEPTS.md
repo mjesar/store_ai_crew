@@ -134,7 +134,28 @@ went wrong. Notes come from doing the step, not from reading about it.
   request anywhere else, so a typo in a URL cannot leak it.
 - **Trigger nodes** (1.4, 1.7): manual, webhook, schedule.
 - **Test URL vs production URL** (1.7): why a webhook node has two addresses.
-- **Error workflows and retries** (1.11).
+- **Retries, and what they cannot fix** (1.11): a node's Settings tab has **Retry On
+  Fail** (here 3 tries, 2 s apart). Most failures calling another service are brief (a
+  dropped connection, a 502), and a second try a moment later works. A wrong setting
+  fails the same way every time, so retries only delay it: the broken credential in the
+  test failed three times in 4.05 s, then the run failed. Retries belong only on nodes
+  that call something outside n8n; repeating an If node gives the same answer. Retrying
+  an action that may have half-worked can repeat it (Slack posts, the reply is lost, the
+  retry posts again), so it suits actions where a repeat is harmless.
+- **HTTP 200 is not success** (1.11): n8n marks an HTTP node red only on an error
+  status. GraphQL answers 200 even when the query fails and puts the problem in an
+  `errors` array, and a lookup that finds nothing returns `null` with no error at all.
+  So the result has to be checked in the workflow (`Product found?`), and a bad result
+  turned into a real failure with a Stop and Error node. Otherwise the run is green, the
+  error workflow never hears of it, and the owner gets an alert with blanks in it.
+- **Error workflows** (1.11): a workflow can name another as its **error workflow**
+  (workflow Settings). When a production run of the first fails, n8n starts the second
+  with an **Error Trigger** and hands it the workflow name, the last node run, the error
+  message and a link to the run. Here it posts those to Slack, so a failure reaches the
+  phone instead of waiting in the Executions list. It does not fire for runs started by
+  hand in the editor. n8n hides credential values in the error data (`**hidden**`), so
+  the alert cannot leak a secret. The run link is built from `N8N_EDITOR_BASE_URL`,
+  falling back to the webhook URL when it is unset.
 - **Exporting workflows** (1.12): what is and is not in the JSON.
 
 ### Shopify access
@@ -225,7 +246,12 @@ went wrong. Notes come from doing the step, not from reading about it.
   request and sends it again. The signature still matches, because the body is unchanged,
   so a signature check alone does not stop it. The duplicate check does, as long as the
   ID is still in the history.
-- **Answer fast, work later** (1.11): why the reply to Shopify comes before the slow steps.
+- **Answer fast, work later** (1.11): Shopify waits at most 5 seconds for a reply (1
+  second to connect), treats anything but a 2xx as a failure, retries 8 times over 4
+  hours, and then deletes a subscription made through the Admin API. So the Webhook node
+  replies at once (Respond Immediately) and the slow steps run after. The other side of
+  that choice: once Shopify has its 200 it considers the delivery done, so any failure
+  later in the run is the workflow's own problem to retry and report (D25).
 - **Thin payloads** (1.7, 1.10): the event says what changed, not everything about it.
 
   The first real `inventory_levels/update` delivery (1.7) carried five fields: an
