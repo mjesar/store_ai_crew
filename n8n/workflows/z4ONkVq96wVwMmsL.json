@@ -1,0 +1,416 @@
+{
+  "updatedAt": "2026-11-19T00:20:49.334Z",
+  "createdAt": "2026-11-12T21:39:37.123Z",
+  "id": "z4ONkVq96wVwMmsL",
+  "name": "Low stock alert",
+  "description": null,
+  "active": true,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "operation": "removeItemsSeenInPreviousExecutions",
+        "dedupeValue": "={{ $json.headers['x-shopify-webhook-id'] }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.removeDuplicates",
+      "typeVersion": 2,
+      "position": [
+        672,
+        -48
+      ],
+      "id": "cfd163b2-bb82-4c54-81d3-8a6fbfc49c8f",
+      "name": "Skip repeat deliveries"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 4
+          },
+          "conditions": [
+            {
+              "id": "526f9956-2b1c-4a7c-9d54-1e2d3835f903",
+              "leftValue": "={{ $json.body.available }}",
+              "rightValue": 5,
+              "operator": {
+                "type": "number",
+                "operation": "lt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.4,
+      "position": [
+        896,
+        -48
+      ],
+      "id": "b4522e3a-3710-47cd-842a-6aefd3afef79",
+      "name": "Below threshold?"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 4
+          },
+          "conditions": [
+            {
+              "id": "a87b7ecd-7486-467d-9e11-9454a613038a",
+              "leftValue": "={{ $json.computedHmac }}",
+              "rightValue": "={{ $json.headers['x-shopify-hmac-sha256'] }}",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.4,
+      "position": [
+        448,
+        0
+      ],
+      "id": "adefc908-6398-41c8-b46b-83c75ba34059",
+      "name": "Valid signature?"
+    },
+    {
+      "parameters": {
+        "action": "hmac",
+        "binaryData": true,
+        "dataPropertyName": "computedHmac",
+        "encoding": "base64"
+      },
+      "type": "n8n-nodes-base.crypto",
+      "typeVersion": 2,
+      "position": [
+        224,
+        0
+      ],
+      "id": "e7804ffe-fba0-44cc-81df-3d55420563cc",
+      "name": "Compute signature",
+      "credentials": {
+        "crypto": {
+          "id": "wIHA3qpPBl0oSJnr",
+          "name": "Shopify webhook signing (Store AI Crew)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "shopify/inventory-levels-update",
+        "options": {
+          "rawBody": true
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.2,
+      "position": [
+        0,
+        0
+      ],
+      "id": "3a36714d-4610-4f5b-b903-a80deeca432e",
+      "name": "Shopify inventory webhook",
+      "webhookId": "af8b8486-eba2-46f3-8ab3-ab4d75a8803a"
+    },
+    {
+      "parameters": {
+        "errorMessage": "Webhook signature mismatch"
+      },
+      "type": "n8n-nodes-base.stopAndError",
+      "typeVersion": 1,
+      "position": [
+        672,
+        96
+      ],
+      "id": "a87c89cc-264e-4c33-8c20-20c6e59a1470",
+      "name": "Reject bad signature"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://test-store-plus-9eiwvuh4.myshopify.com/admin/oauth/access_token",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpCustomAuth",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        1120,
+        -64
+      ],
+      "id": "2c116039-a0b1-4c20-81b2-26342848ca85",
+      "name": "Get Shopify token",
+      "retryOnFail": true,
+      "waitBetweenTries": 2000,
+      "credentials": {
+        "httpCustomAuth": {
+          "id": "EKWdezN7Hy7wqWWM",
+          "name": "Shopify client credentials"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://test-store-plus-9eiwvuh4.myshopify.com/admin/api/2026-10/graphql.json",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Shopify-Access-Token",
+              "value": "={{ $('Get Shopify token').item.json.access_token }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={ \"query\": \"query ItemProduct($id: ID!) { inventoryItem(id: $id) { variant { title inventoryQuantity product { title legacyResourceId } } } }\",\n  \"variables\": { \"id\": \"gid://shopify/InventoryItem/{{ $('Shopify inventory webhook').item.json.body.inventory_item_id }}\" } }\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        1344,
+        -64
+      ],
+      "id": "14d0c97f-f208-4fd9-97e6-c33d180cbb8c",
+      "name": "Look up product",
+      "retryOnFail": true,
+      "waitBetweenTries": 2000
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "C0CHS4WG5DE",
+          "mode": "id"
+        },
+        "text": "=Low stock: {{ $('Look up product').item.json.data.inventoryItem.variant.product.title }}. {{ $('Shopify inventory webhook').item.json.body.available }} left at this location, {{ $('Look up product').item.json.data.inventoryItem.variant.inventoryQuantity }} in total. <https://admin.shopify.com/store/test-store-plus-9eiwvuh4/products/{{ $('Look up product').item.json.data.inventoryItem.variant.product.legacyResourceId }}|Open in Shopify>\n",
+        "otherOptions": {
+          "includeLinkToWorkflow": false
+        }
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.7,
+      "position": [
+        1792,
+        -64
+      ],
+      "id": "34d2b295-743d-4a82-b7a4-600b19983a1d",
+      "name": "Send low stock alert",
+      "webhookId": "e04d77b5-3d37-4db7-803b-1b3a1fac8570",
+      "retryOnFail": true,
+      "waitBetweenTries": 2000,
+      "credentials": {
+        "slackApi": {
+          "id": "8J2GKrxa7GPmxLwE",
+          "name": "Slack account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 4
+          },
+          "conditions": [
+            {
+              "id": "ab3fd5a9-4d9d-4873-8a13-a5459164656a",
+              "leftValue": "={{ $json.errors }}",
+              "rightValue": "={{ $json.errors }}",
+              "operator": {
+                "type": "array",
+                "operation": "notExists",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "c7e373ba-d797-48ed-a4a7-ad495b75999b",
+              "leftValue": "={{ $json.data.inventoryItem }}",
+              "rightValue": "",
+              "operator": {
+                "type": "object",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.4,
+      "position": [
+        1568,
+        -64
+      ],
+      "id": "f0717a1c-e349-443d-8feb-26b762b059ea",
+      "name": "Product found?"
+    },
+    {
+      "parameters": {
+        "errorMessage": "=Product lookup failed for inventory item {{ $('Shopify inventory webhook').item.json.body.inventory_item_id }}: {{ $json.errors ? JSON.stringify($json.errors) : 'item not found' }}"
+      },
+      "type": "n8n-nodes-base.stopAndError",
+      "typeVersion": 1,
+      "position": [
+        1840,
+        80
+      ],
+      "id": "61784f4a-b795-40f4-b0e2-cea3bc33a751",
+      "name": "Lookup failed"
+    }
+  ],
+  "connections": {
+    "Skip repeat deliveries": {
+      "main": [
+        [
+          {
+            "node": "Below threshold?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Valid signature?": {
+      "main": [
+        [
+          {
+            "node": "Skip repeat deliveries",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Reject bad signature",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Compute signature": {
+      "main": [
+        [
+          {
+            "node": "Valid signature?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Shopify inventory webhook": {
+      "main": [
+        [
+          {
+            "node": "Compute signature",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Below threshold?": {
+      "main": [
+        [
+          {
+            "node": "Get Shopify token",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Shopify token": {
+      "main": [
+        [
+          {
+            "node": "Look up product",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Look up product": {
+      "main": [
+        [
+          {
+            "node": "Product found?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Product found?": {
+      "main": [
+        [
+          {
+            "node": "Send low stock alert",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Lookup failed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "timeSavedMode": "fixed",
+    "errorWorkflow": "WpKTY8nfc7IWLV35",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "nodeGroups": [],
+  "pinData": {},
+  "versionId": "e3556b40-d6b2-4783-a431-0fe43230ff34",
+  "activeVersionId": "e3556b40-d6b2-4783-a431-0fe43230ff34",
+  "versionCounter": 100,
+  "triggerCount": 1,
+  "sourceWorkflowId": null,
+  "tags": [],
+  "versionMetadata": {
+    "name": "Version e3556b40",
+    "description": ""
+  }
+}

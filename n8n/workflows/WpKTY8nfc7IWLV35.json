@@ -1,0 +1,86 @@
+{
+  "updatedAt": "2026-11-19T00:17:20.945Z",
+  "createdAt": "2026-11-19T00:13:29.997Z",
+  "id": "WpKTY8nfc7IWLV35",
+  "name": "Failure alert",
+  "description": null,
+  "active": true,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "ab2e8f92-ddef-4259-bd4e-d5858cfba6c1",
+      "name": "Error Trigger"
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "C0CHS4WG5DE",
+          "mode": "id"
+        },
+        "text": "=:rotating_light: Workflow failed: {{ $json.workflow.name }}\nNode: {{ $json.execution.lastNodeExecuted }}\nError: {{ $json.execution.error.message }}\nRun: {{ $json.execution.url }}",
+        "otherOptions": {
+          "includeLinkToWorkflow": false
+        }
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.7,
+      "position": [
+        224,
+        0
+      ],
+      "id": "a3923cbf-4182-45c0-8983-90ae98063e16",
+      "name": "Send failure alert",
+      "webhookId": "cbd919e5-e0fc-4796-b65c-89dd5f920415",
+      "retryOnFail": true,
+      "waitBetweenTries": 2000,
+      "credentials": {
+        "slackApi": {
+          "id": "8J2GKrxa7GPmxLwE",
+          "name": "Slack account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Error Trigger": {
+      "main": [
+        [
+          {
+            "node": "Send failure alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "nodeGroups": [],
+  "pinData": {},
+  "versionId": "3e70fc85-7640-4afa-9a2e-47e77ae3d2f1",
+  "activeVersionId": "3e70fc85-7640-4afa-9a2e-47e77ae3d2f1",
+  "versionCounter": 12,
+  "triggerCount": 0,
+  "sourceWorkflowId": null,
+  "tags": [],
+  "versionMetadata": {
+    "name": "Version 3e70fc85",
+    "description": ""
+  }
+}
