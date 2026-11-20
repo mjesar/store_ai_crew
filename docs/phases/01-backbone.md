@@ -324,6 +324,8 @@ Short version here, full reasoning in [../DECISIONS.md](../DECISIONS.md).
   posts every failed run to Slack.
 - D26 (1.12): the tunnel's rules file names no tunnel ID or hostname, so it is the same
   for every copy of the repo; the token in `.env` picks the tunnel.
+- D27 (1.12): store handle, Slack channel and threshold live in one `Settings` node per
+  workflow, not in `.env`, so n8n's environment stays closed to expressions.
 
 ## What broke
 
@@ -458,3 +460,4 @@ Real runs only. If a number has not been measured, it does not go here.
 | 2026-11-19 | 1.11: `N8N_EDITOR_BASE_URL=http://localhost:5678/` in `.env`, `docker compose up -d` (n8n recreated). Credential broken the same way, stock changed, then fixed again | Failure alert for execution #34 with "Run: http://localhost:5678/workflow/z4ONkVq96wVwMmsL/executions/34", which opens the failed run in the editor on the laptop |
 | 2026-11-20 | 1.12 (part): `scripts/subscribe-webhook.sh` (client credentials token, then `webhookSubscriptions` filtered by topic `INVENTORY_LEVELS_UPDATE`, matched on `uri` with `jq`, `webhookSubscriptionCreate` only when no match), run against the live store | "Already subscribed: gid://shopify/WebhookSubscription/1722870104225 -> https://hooks.mjesar.dpdns.org/webhook/shopify/inventory-levels-update", the subscription made by hand at 1.7, so a second run creates no duplicate |
 | 2026-11-20 | 1.12 (part): `tunnel:` line and both `hostname:` keys removed from `cloudflared/config.yml` (D26). Checked first on a copy with `ingress rule` against a made-up host, then `docker compose restart cloudflared` | `ingress validate` OK; for `https://hooks.example.com`, `/webhook/...` matched rule #0, `/healthz` rule #1, `/signin` and `/` the 404 catch-all. Live: "Starting tunnel tunnelID=48bdbbd9-..." taken from the token, 4 connections registered (`khi01` x2, `sin15`, `sin11`). `/healthz` 200 `{"status":"ok"}`, `/signin` 404 with an empty body (catch-all), `/webhook/does-not-exist` 404 from n8n ("webhook ... is not registered") |
+| 2026-11-20 | 1.12 (part): `Settings` node added to both workflows (D27); the token URL, GraphQL URL, Slack channel, message link and threshold now read from it. Both published, stock changed, then `./scripts/export-workflows.sh` | Execution #36 succeeded in 2.692 s, `Settings` between `Skip repeat deliveries` and `Below threshold?`. Slack `ok: true` on channel `C0CHS4WG5DE`; text "Low stock: The Collection Snowboard: Hydrogen. 3 left at this location, 3 in total." with the link `https://admin.shopify.com/store/test-store-plus-9eiwvuh4/products/8559151841441`. In the export, the store handle appears once and the channel once per workflow, all inside `Settings`; no `shared` block, `pinData` empty |

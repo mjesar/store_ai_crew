@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-11-19T00:20:49.334Z",
+  "updatedAt": "2026-11-20T00:29:11.164Z",
   "createdAt": "2026-11-12T21:39:37.123Z",
   "id": "z4ONkVq96wVwMmsL",
   "name": "Low stock alert",
@@ -35,7 +35,7 @@
             {
               "id": "526f9956-2b1c-4a7c-9d54-1e2d3835f903",
               "leftValue": "={{ $json.body.available }}",
-              "rightValue": 5,
+              "rightValue": "={{ $('Settings').item.json.lowStockThreshold }}",
               "operator": {
                 "type": "number",
                 "operation": "lt"
@@ -49,7 +49,7 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.4,
       "position": [
-        896,
+        1120,
         -48
       ],
       "id": "b4522e3a-3710-47cd-842a-6aefd3afef79",
@@ -145,7 +145,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "https://test-store-plus-9eiwvuh4.myshopify.com/admin/oauth/access_token",
+        "url": "=https://{{ $('Settings').item.json.storeHandle }}.myshopify.com/admin/oauth/access_token",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpCustomAuth",
         "options": {}
@@ -153,7 +153,7 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.5,
       "position": [
-        1120,
+        1344,
         -64
       ],
       "id": "2c116039-a0b1-4c20-81b2-26342848ca85",
@@ -170,7 +170,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "https://test-store-plus-9eiwvuh4.myshopify.com/admin/api/2026-10/graphql.json",
+        "url": "=https://{{ $('Settings').item.json.storeHandle }}.myshopify.com/admin/api/2026-10/graphql.json",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
@@ -188,7 +188,7 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.5,
       "position": [
-        1344,
+        1568,
         -64
       ],
       "id": "14d0c97f-f208-4fd9-97e6-c33d180cbb8c",
@@ -201,10 +201,10 @@
         "select": "channel",
         "channelId": {
           "__rl": true,
-          "value": "C0CHS4WG5DE",
+          "value": "={{ $('Settings').item.json.slackChannel }}",
           "mode": "id"
         },
-        "text": "=Low stock: {{ $('Look up product').item.json.data.inventoryItem.variant.product.title }}. {{ $('Shopify inventory webhook').item.json.body.available }} left at this location, {{ $('Look up product').item.json.data.inventoryItem.variant.inventoryQuantity }} in total. <https://admin.shopify.com/store/test-store-plus-9eiwvuh4/products/{{ $('Look up product').item.json.data.inventoryItem.variant.product.legacyResourceId }}|Open in Shopify>\n",
+        "text": "=Low stock: {{ $('Look up product').item.json.data.inventoryItem.variant.product.title }}. {{ $('Shopify inventory webhook').item.json.body.available }} left at this location, {{ $('Look up product').item.json.data.inventoryItem.variant.inventoryQuantity }} in total. <https://admin.shopify.com/store/{{ $('Settings').item.json.storeHandle }}/products/{{ $('Look up product').item.json.data.inventoryItem.variant.product.legacyResourceId }}|Open in Shopify>",
         "otherOptions": {
           "includeLinkToWorkflow": false
         }
@@ -212,7 +212,7 @@
       "type": "n8n-nodes-base.slack",
       "typeVersion": 2.7,
       "position": [
-        1792,
+        2016,
         -64
       ],
       "id": "34d2b295-743d-4a82-b7a4-600b19983a1d",
@@ -265,7 +265,7 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.4,
       "position": [
-        1568,
+        1792,
         -64
       ],
       "id": "f0717a1c-e349-443d-8feb-26b762b059ea",
@@ -278,11 +278,47 @@
       "type": "n8n-nodes-base.stopAndError",
       "typeVersion": 1,
       "position": [
-        1840,
+        2064,
         80
       ],
       "id": "61784f4a-b795-40f4-b0e2-cea3bc33a751",
       "name": "Lookup failed"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "1c0787ad-15bf-4097-8cc4-dbf21ac90701",
+              "name": "storeHandle",
+              "value": "test-store-plus-9eiwvuh4",
+              "type": "string"
+            },
+            {
+              "id": "9cb9f728-07c7-428b-a82e-2bf4b69c05a9",
+              "name": "slackChannel",
+              "value": "C0CHS4WG5DE",
+              "type": "string"
+            },
+            {
+              "id": "6a875c45-9b06-44dc-8523-9c0b07380e4f",
+              "name": "lowStockThreshold",
+              "value": 5,
+              "type": "number"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        896,
+        -48
+      ],
+      "id": "93053a8c-62bb-455a-a23c-c8f92af692b6",
+      "name": "Settings"
     }
   ],
   "connections": {
@@ -290,7 +326,7 @@
       "main": [
         [
           {
-            "node": "Below threshold?",
+            "node": "Settings",
             "type": "main",
             "index": 0
           }
@@ -387,6 +423,17 @@
           }
         ]
       ]
+    },
+    "Settings": {
+      "main": [
+        [
+          {
+            "node": "Below threshold?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "settings": {
@@ -403,14 +450,14 @@
   },
   "nodeGroups": [],
   "pinData": {},
-  "versionId": "e3556b40-d6b2-4783-a431-0fe43230ff34",
-  "activeVersionId": "e3556b40-d6b2-4783-a431-0fe43230ff34",
-  "versionCounter": 100,
+  "versionId": "bb86fa22-8005-406c-861b-0b9929b4e6e0",
+  "activeVersionId": "bb86fa22-8005-406c-861b-0b9929b4e6e0",
+  "versionCounter": 127,
   "triggerCount": 1,
   "sourceWorkflowId": null,
   "tags": [],
   "versionMetadata": {
-    "name": "Version e3556b40",
+    "name": "Version bb86fa22",
     "description": ""
   }
 }
