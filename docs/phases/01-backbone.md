@@ -322,6 +322,8 @@ Short version here, full reasoning in [../DECISIONS.md](../DECISIONS.md).
 - D25 (1.11): failures after the reply are handled in n8n: retries on the three outside
   calls, a check that turns a GraphQL error into a failed run, and an error workflow that
   posts every failed run to Slack.
+- D26 (1.12): the tunnel's rules file names no tunnel ID or hostname, so it is the same
+  for every copy of the repo; the token in `.env` picks the tunnel.
 
 ## What broke
 
@@ -455,3 +457,4 @@ Real runs only. If a number has not been measured, it does not go here.
 | 2026-11-19 | 1.11 (part): Allowed Domains set back to `test-store-plus-9eiwvuh4.myshopify.com`, no restart, stock changed | Execution #33 succeeded; alert "Low stock: The Collection Snowboard: Hydrogen. 3 left at this location, 3 in total." n8n reads the credential on every run, so the fix applied at once |
 | 2026-11-19 | 1.11: `N8N_EDITOR_BASE_URL=http://localhost:5678/` in `.env`, `docker compose up -d` (n8n recreated). Credential broken the same way, stock changed, then fixed again | Failure alert for execution #34 with "Run: http://localhost:5678/workflow/z4ONkVq96wVwMmsL/executions/34", which opens the failed run in the editor on the laptop |
 | 2026-11-20 | 1.12 (part): `scripts/subscribe-webhook.sh` (client credentials token, then `webhookSubscriptions` filtered by topic `INVENTORY_LEVELS_UPDATE`, matched on `uri` with `jq`, `webhookSubscriptionCreate` only when no match), run against the live store | "Already subscribed: gid://shopify/WebhookSubscription/1722870104225 -> https://hooks.mjesar.dpdns.org/webhook/shopify/inventory-levels-update", the subscription made by hand at 1.7, so a second run creates no duplicate |
+| 2026-11-20 | 1.12 (part): `tunnel:` line and both `hostname:` keys removed from `cloudflared/config.yml` (D26). Checked first on a copy with `ingress rule` against a made-up host, then `docker compose restart cloudflared` | `ingress validate` OK; for `https://hooks.example.com`, `/webhook/...` matched rule #0, `/healthz` rule #1, `/signin` and `/` the 404 catch-all. Live: "Starting tunnel tunnelID=48bdbbd9-..." taken from the token, 4 connections registered (`khi01` x2, `sin15`, `sin11`). `/healthz` 200 `{"status":"ok"}`, `/signin` 404 with an empty body (catch-all), `/webhook/does-not-exist` 404 from n8n ("webhook ... is not registered") |
