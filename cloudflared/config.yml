@@ -1,9 +1,10 @@
-tunnel: 48bdbbd9-e1c4-4eaf-9605-ff0ec1cd3894
+# No tunnel ID or hostname here, so the file is the same for every copy of this repo.
+# TUNNEL_TOKEN in .env says which tunnel this is, and only hostnames routed to that tunnel
+# in DNS ever arrive, so the rules match on path alone.
 ingress:
-  - hostname: hooks.mjesar.dpdns.org
-    path: ^/webhook/
+  # Only n8n's production webhooks and its health check are public; the editor never is.
+  - path: ^/webhook/
     service: http://n8n:5678
-  - hostname: hooks.mjesar.dpdns.org
-    path: ^/healthz$
+  - path: ^/healthz$
     service: http://n8n:5678
   - service: http_status:404

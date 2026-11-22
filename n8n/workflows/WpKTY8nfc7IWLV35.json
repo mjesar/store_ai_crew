@@ -1,0 +1,121 @@
+{
+  "updatedAt": "2026-11-20T00:33:48.427Z",
+  "createdAt": "2026-11-19T00:13:29.997Z",
+  "id": "WpKTY8nfc7IWLV35",
+  "name": "Failure alert",
+  "description": null,
+  "active": true,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "ab2e8f92-ddef-4259-bd4e-d5858cfba6c1",
+      "name": "Error Trigger"
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "={{ $('Settings').item.json.slackChannel }}",
+          "mode": "id"
+        },
+        "text": "=:rotating_light: Workflow failed: {{ $json.workflow.name }}\nNode: {{ $json.execution.lastNodeExecuted }}\nError: {{ $json.execution.error.message }}\nRun: {{ $json.execution.url }}",
+        "otherOptions": {
+          "includeLinkToWorkflow": false
+        }
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.7,
+      "position": [
+        448,
+        0
+      ],
+      "id": "a3923cbf-4182-45c0-8983-90ae98063e16",
+      "name": "Send failure alert",
+      "webhookId": "cbd919e5-e0fc-4796-b65c-89dd5f920415",
+      "retryOnFail": true,
+      "waitBetweenTries": 2000,
+      "credentials": {
+        "slackApi": {
+          "id": "8J2GKrxa7GPmxLwE",
+          "name": "Slack account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "8d02d38c-1329-4b34-9132-01736c025aad",
+              "name": "slackChannel",
+              "value": "C0CHS4WG5DE",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        224,
+        0
+      ],
+      "id": "49f2a252-4c07-4943-bb83-be9a23a662b1",
+      "name": "Settings"
+    }
+  ],
+  "connections": {
+    "Error Trigger": {
+      "main": [
+        [
+          {
+            "node": "Settings",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Settings": {
+      "main": [
+        [
+          {
+            "node": "Send failure alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "nodeGroups": [],
+  "pinData": {},
+  "versionId": "e707a242-ce9b-428f-b997-7852ddb2d7a5",
+  "activeVersionId": "e707a242-ce9b-428f-b997-7852ddb2d7a5",
+  "versionCounter": 20,
+  "triggerCount": 0,
+  "sourceWorkflowId": null,
+  "tags": [],
+  "versionMetadata": {
+    "name": "Version e707a242",
+    "description": ""
+  }
+}

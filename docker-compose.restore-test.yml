@@ -1,0 +1,25 @@
+# A throwaway n8n for rehearsing a restore from the repo. It starts with an empty database,
+# has no tunnel (Shopify cannot reach it) and never touches the real n8n or its volume.
+#
+# Point docker compose (and the scripts) at it with two variables:
+#   export COMPOSE_FILE=docker-compose.restore-test.yml COMPOSE_PROJECT_NAME=store_ai_crew_restore_test
+# Delete it, database and all, with: docker compose down -v
+#
+# Throwaway owner login (local only, gone with the volume): restore-test@example.com / RestoreTest2026x
+services:
+  # Same service name as the real one, so the scripts' `docker compose exec n8n` work unchanged.
+  n8n:
+    # Same version as the real n8n: the rehearsal must prove the restore on what production runs.
+    image: docker.n8n.io/n8nio/n8n:2.47.4
+    ports:
+      # Laptop port 5679, so it can run next to the real n8n on 5678. Inside the container it
+      # stays on 5678: n8n's task broker already uses 5679 there.
+      - "127.0.0.1:5679:5678"
+    environment:
+      # Failure alert run links should open this editor, not the real one.
+      N8N_EDITOR_BASE_URL: http://localhost:5679/
+    volumes:
+      - n8n_data:/home/node/.n8n
+
+volumes:
+  n8n_data:
