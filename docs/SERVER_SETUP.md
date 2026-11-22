@@ -111,3 +111,101 @@ engine, the engine pulls from Docker Hub, and a container runs.
 | containerd | 2.4.2 |
 | runc | 1.5.3 |
 | Docker Compose plugin | 5.8.0 |
+
+## 3. Bring the project over
+
+On the server. The repo is public, so a read-only HTTPS clone needs no keys. Updates later
+are a `git pull` instead of copying files by hand.
+
+```
+git clone https://github.com/mjesar/store_ai_crew.git
+```
+
+The `.env` holds the secrets and is never in git, so it is copied from the laptop. On the
+laptop, from the project folder:
+
+```
+multipass transfer .env store-ai-crew:/home/ubuntu/store_ai_crew/.env
+```
+
+(On the cloud machine this is `scp` over Tailscale instead.) Then, on the server, make it
+readable by its owner only, so no other account or service on the machine can read the
+secrets:
+
+```
+chmod 600 store_ai_crew/.env
+ls -la store_ai_crew/.env    # -rw------- 1 ubuntu ubuntu ...
+```
+
+## 4. SSH with a key
+
+The n8n editor listens only on `127.0.0.1` inside the server, so it is never public. To
+open it from the laptop's browser, the laptop needs SSH into the server, and later an SSH
+tunnel through it. SSH logs in with a key pair: the private key stays on the laptop, and
+the server lists the matching public key in `~/.ssh/authorized_keys`.
+
+On the laptop. `multipass transfer` cannot read `~/.ssh` (the snap is not allowed into
+hidden folders in the home directory), so the laptop's shell reads the key and pipes it to
+a command inside the VM. `>>` appends, so the key Multipass itself uses stays in the list:
+
+```
+multipass exec store-ai-crew -- bash -c 'cat >> ~/.ssh/authorized_keys' < ~/.ssh/id_ed25519.pub
+ssh ubuntu@10.97.0.38
+```
+
+Done when the login works without a password. The first connection asks to trust the
+server's fingerprint; after that, SSH warns if a different machine answers at that address.
+
+On the cloud machine the public key is given at creation time instead, in the provider's
+console.
+
+## 5. Tailscale
+
+Tailscale joins the laptop and the server into one private network (a "tailnet"). Each
+device gets a `100.x.x.x` address that only other devices in the tailnet can reach, from
+anywhere. SSH and the n8n editor will be reachable only this way, so the server shows the
+internet no door to knock on. Shopify still reaches n8n through the Cloudflare Tunnel,
+which is a separate, public path for the webhook only.
+
+How it works: Tailscale's servers keep the member list and hand each device the others'
+public keys. The traffic itself goes directly between the devices, encrypted with
+WireGuard, or through a Tailscale relay when a direct path is blocked. Either way Tailscale
+cannot read it.
+
+Free "Personal" plan: up to 6 users, unlimited devices, non-commercial use (checked
+2026-11-23 on tailscale.com/pricing).
+
+On the laptop and then on the server, the install script from Tailscale's Linux guide
+(it adds Tailscale's apt repository and installs the package):
+
+```
+curl -fsSL https://tailscale.com/install.sh | sh
+sudo tailscale up
+tailscale ip -4
+```
+
+On the laptop, `tailscale up` opens a login (the first one creates the tailnet). On the
+server it prints a link instead: open it in the laptop's browser and click Connect. Treat
+that link as a secret until it is used, since whoever opens it can add a device to the
+tailnet.
+
+Then SSH over the Tailscale address, from the laptop:
+
+```
+ssh ubuntu@100.117.248.13
+```
+
+SSH asks again to trust the host, because it remembers hosts by address. The fingerprint
+must match the one from the first login (`SHA256:qTlXUVyF...`); here it did, and SSH
+also noted the key was already known under another address.
+
+| Device | Tailnet name | Address | Tailscale |
+| --- | --- | --- | --- |
+| Laptop | `mj-01` | `100.102.132.58` | 1.104.7 |
+| Rehearsal VM | `store-ai-crew` | `100.117.248.13` | 1.104.7 |
+
+Last, in the Tailscale admin console (Machines, the `...` menu on the server's row):
+**Disable key expiry** for the server only. A device's login expires after 180 days by
+default, which is a good safety net for a laptop. On a server reachable only over
+Tailscale, it would mean a silent lockout months later. The row then shows "Expiry
+disabled".
