@@ -209,3 +209,61 @@ Last, in the Tailscale admin console (Machines, the `...` menu on the server's r
 default, which is a good safety net for a laptop. On a server reachable only over
 Tailscale, it would mean a silent lockout months later. The row then shows "Expiry
 disabled".
+
+## 6. Run the stack and move the tunnel
+
+On the server, start **n8n only**. The tunnel waits until n8n is set up: an empty n8n
+would fail every webhook, and after 8 failures in a row Shopify deletes the subscription.
+
+```
+cd ~/store_ai_crew && sudo docker compose up -d n8n
+```
+
+`sudo` is needed because only root may use Docker on this machine (see the hardening part
+for why that stays so).
+
+Open the editor from the laptop through an SSH tunnel over Tailscale. The editor listens
+only on `127.0.0.1` inside the server, so this is the only way in. The command looks stuck
+while the pipe is open; Ctrl+C closes it:
+
+```
+ssh -N -L 5680:localhost:5678 ubuntu@100.117.248.13
+```
+
+Then browse to `http://127.0.0.1:5680`. Laptop port 5680, because a local n8n may already
+use 5678. Use `127.0.0.1` and not `localhost`: n8n's login cookie is per host name, not
+per port, so `localhost:5680` would log the laptop's own editor out.
+
+Create the owner account (a placeholder email such as `owner@example.com` works: n8n uses
+it only as a login name and sends no mail). Then restore the workflows and credential
+stubs, following [RESTORE.md](RESTORE.md) steps 4 to 6. `jq` is needed by the script and
+was already on the Ubuntu image; `sudo apt install jq` is harmless if it is.
+
+```
+sudo ./scripts/restore-n8n.sh
+```
+
+Paste the three secrets in the editor, then publish `Failure alert` first and
+`Low stock alert` second.
+
+Move the tunnel. Whichever machine runs `cloudflared` receives the webhooks, so the old
+machine stops first, or Cloudflare would split deliveries between the two. On the laptop:
+
+```
+docker compose stop
+```
+
+`stop` keeps the containers and data, and with `restart: unless-stopped` they stay down
+after a reboot too. Then on the server:
+
+```
+sudo docker compose up -d cloudflared
+sudo docker compose logs cloudflared | grep -i "registered tunnel connection"
+```
+
+Four "Registered tunnel connection" lines mean the tunnel is up. The webhook address in
+Shopify does not change: `TUNNEL_TOKEN` tells Cloudflare which tunnel this is, and the
+hostname is routed to the tunnel in Cloudflare's dashboard, not on the server.
+
+Check: lower a product's stock in the Shopify admin. A Slack alert arrives, and the run
+shows green in the server's n8n under Executions.
