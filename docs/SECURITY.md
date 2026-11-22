@@ -52,10 +52,10 @@ documentation.
 
 | Measure | Step |
 | --- | --- |
-| SSH with keys only, password login off, root login off | 1.14 |
-| SSH listens only on the Tailscale address | 1.13, 1.14 |
+| SSH with keys only, password login off, root login off (`PermitRootLogin no` in `/etc/ssh/sshd_config.d/10-hardening.conf`) | 1.13, 1.14 |
+| SSH reachable only over Tailscale: `ufw` denies all inbound and allows port 22 only on `tailscale0` (D30) | 1.13, 1.14 |
 | Cloud firewall (Oracle security list) blocks all inbound | 1.14 |
-| Automatic security updates for the OS (`unattended-upgrades`) | 1.14 |
+| Automatic security updates for the OS (`unattended-upgrades`), with a reboot at 04:00 when a fix needs one (D29) | 1.13, 1.14 |
 | Newest Ubuntu LTS | 1.13, 1.14 |
 | All server measures rehearsed first on a Multipass VM | 1.13 |
 

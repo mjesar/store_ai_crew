@@ -267,3 +267,149 @@ hostname is routed to the tunnel in Cloudflare's dashboard, not on the server.
 
 Check: lower a product's stock in the Shopify admin. A Slack alert arrives, and the run
 shows green in the server's n8n under Executions.
+
+## 7. Updates: now and from then on
+
+On the server. A fresh image is already weeks old, so install what came out since:
+
+```
+sudo apt update && sudo apt upgrade
+cat /var/run/reboot-required
+```
+
+If the second line prints `*** System restart required ***` (usually a new kernel), reboot.
+`exit` would only close the connection; the new kernel loads only on a restart.
+
+```
+sudo reboot
+```
+
+SSH drops. About 30 seconds later, log in again over Tailscale and check that the stack
+came back on its own, with no one starting it:
+
+```
+ssh ubuntu@100.117.248.13
+cd ~/store_ai_crew && sudo docker compose ps    # both containers "Up"
+```
+
+Automatic security updates (`unattended-upgrades`) are on by default in Ubuntu server
+images. Check the switch rather than assume it:
+
+```
+cat /etc/apt/apt.conf.d/20auto-upgrades
+```
+
+Both lines must say `"1"` (every day). A dry run proves the tool works and shows where it
+takes updates from:
+
+```
+sudo unattended-upgrade --dry-run --debug 2>&1 | grep -E "Allowed origins|No packages found|error" -i
+```
+
+The allowed origins include `resolute-security`. Docker's repository is not among them, so
+Docker upgrades stay deliberate.
+
+By default it never reboots, so kernel fixes would wait. Reboot by itself at a quiet hour,
+only when a fix needs it (D29). Our own file, so a package update cannot overwrite it:
+
+```
+sudo tee /etc/apt/apt.conf.d/52unattended-upgrades-local <<EOF
+Unattended-Upgrade::Automatic-Reboot "true";
+Unattended-Upgrade::Automatic-Reboot-Time "04:00";
+EOF
+apt-config dump | grep Automatic-Reboot
+timedatectl | grep "Time zone"
+```
+
+`apt-config dump` shows the settings as apt really reads them, so a typo shows up as a
+missing line. The hour is in the server's time zone. The VM inherits the laptop's
+(`Asia/Karachi`); a cloud machine usually starts in UTC, where 04:00 is 09:00 in Pakistan.
+There, either set the zone (`sudo timedatectl set-timezone Asia/Karachi`) or pick the hour
+in UTC.
+
+## 8. Lock the front door: SSH and the firewall
+
+On the server. Check SSH's real settings first (`sshd -T` prints them after reading every
+config file):
+
+```
+sudo sshd -T | grep -E "^(passwordauthentication|kbdinteractiveauthentication|permitrootlogin|pubkeyauthentication) "
+```
+
+Ubuntu's cloud image already has keys on and both password methods off. Only
+`permitrootlogin` was `prohibit-password` (root may log in with a key), so turn it fully off.
+For SSH the **first** value read wins (the opposite of apt), and the image ships
+`60-cloudimg-settings.conf`, so our file gets a lower number:
+
+```
+echo "PermitRootLogin no" | sudo tee /etc/ssh/sshd_config.d/10-hardening.conf
+sudo sshd -t && echo "config OK"
+sudo systemctl restart ssh
+sudo sshd -T | grep permitrootlogin    # permitrootlogin no
+```
+
+`sshd -t` tests the config without applying it. A restart does not drop the current
+session. **Keep that session open** and log in from a second tab before closing anything:
+if the new settings were broken, the open session is the way back in.
+
+Then the firewall. SSH is kept to Tailscale by filtering on the network interface, not by
+binding SSH to the Tailscale address (D30). Rules first, enable second, so the session in
+use is never cut off. Run this from an SSH session over Tailscale, not `multipass shell`:
+
+```
+sudo ufw default deny incoming && sudo ufw default allow outgoing && sudo ufw allow in on tailscale0 to any port 22 proto tcp
+sudo ufw enable
+sudo ufw status verbose
+```
+
+Status shows `active`, `deny (incoming), allow (outgoing)`, and `22/tcp on tailscale0 ALLOW
+IN`. Outgoing stays open for the tunnel, Slack, Shopify, updates and Tailscale itself.
+
+Check both doors from the **laptop** (the `➜` prompt, not a tab still logged into the
+server, or the test only reaches the server from itself):
+
+```
+ssh ubuntu@100.117.248.13                           # logs in
+ssh -o ConnectTimeout=5 ubuntu@10.97.0.38           # Connection timed out
+```
+
+From here `multipass shell` no longer works on the VM, since it comes in over the Multipass
+network. That is the lock working.
+
+## 9. The Docker port trap (seen once, on purpose)
+
+A port published by Docker skips `ufw`. Docker writes its own rules for traffic passed
+through to containers, and they are checked before ufw's list, so `ufw status` can say
+"deny" while the port is wide open. The compose file avoids it by publishing the editor on
+`127.0.0.1` only. To see the trap, on the server, drop that address for a moment (never
+committed):
+
+```
+cd ~/store_ai_crew && sed -i 's|"127.0.0.1:5678:5678"|"5678:5678"|' docker-compose.yml
+sudo docker compose up -d n8n && sudo docker compose ps n8n    # 0.0.0.0:5678->5678/tcp
+```
+
+From the laptop, with ufw active and no rule for 5678:
+
+```
+curl -s -m 5 http://10.97.0.38:5678/healthz    # {"status":"ok"}
+```
+
+The editor answers through the firewall. On a cloud machine with a public address, this
+one-line slip would put the n8n login page on the internet. Fix it by restoring the
+committed file:
+
+```
+git checkout docker-compose.yml && sudo docker compose up -d n8n && sudo docker compose ps n8n    # 127.0.0.1:5678->5678/tcp
+```
+
+From the laptop again (two separate lines, since `$?` holds the result of the line before):
+
+```
+curl -s -m 5 http://10.97.0.38:5678/healthz
+echo "exit code: $?"    # 28, timed out
+```
+
+The lesson for the cloud: never publish a container port on all addresses, and keep the
+provider's own firewall (Oracle's security list) closed to all inbound as a second lock
+outside the server, where Docker cannot write rules.
