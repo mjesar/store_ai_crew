@@ -276,8 +276,11 @@ in all three places. See D8 in [../DECISIONS.md](../DECISIONS.md).
     stack on the laptop or VM first, so the tunnel runs in one place. The Shopify webhook
     address does not change.
   - **Confirm:** the current Always Free machine sizes and limits before signing up.
-  - If Oracle sign-up fails or has no free capacity, keep running on the Multipass VM
-    and record that in DECISIONS.md.
+  - If Oracle sign-up fails or has no free capacity, the fallback is Google Cloud's free
+    e2-micro (no end date, but only 1 GB of memory), once n8n is shown to stay stable on
+    it. AWS and Azure free VMs end after 6 and 12 months, so they are trials, not a home.
+    The Multipass VM is not a fallback: it runs only while the laptop is on. **Confirm**
+    both offers on the providers' own pages, and record the choice in DECISIONS.md.
   - This step can move to the start of phase 2 if phase 1 is otherwise ready to show.
   - Done when: the laptop is closed and a stock change still alerts.
 
