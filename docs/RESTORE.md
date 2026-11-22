@@ -94,8 +94,8 @@ already filled), but its secret is still empty.
 
 | Credential | Field to fill | Value |
 | --- | --- | --- |
-| `Slack account` | Access Token | the Slack app's bot token (`xoxb-...`) |
-| `Shopify webhook signing (Store AI Crew)` | the secret field | `SHOPIFY_CLIENT_SECRET` from `.env` (Shopify signs webhooks with the app's client secret) |
+| `Slack account` | Access Token (leave Signature Secret empty: it only verifies events Slack sends in, and these workflows only post) | the Slack app's Bot User OAuth Token (`xoxb-...`), under OAuth & Permissions |
+| `Shopify webhook signing (Store AI Crew)` | Hmac Secret (leave every other field empty) | `SHOPIFY_CLIENT_SECRET` from `.env` (Shopify signs webhooks with the app's client secret) |
 | `Shopify client credentials` | JSON | the block below, with the values from `.env` |
 
 ```json

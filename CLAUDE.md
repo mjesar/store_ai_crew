@@ -126,8 +126,8 @@ Rules:
 
 ## Current status
 
-Phase 1, step 1.12 (workflows into the repo). Step 1.11 is done: Retry On Fail on the
-three nodes that call outside services, `Product found?` turns a GraphQL error or a missing
-item into a failed run (`Lookup failed`), and the error workflow `Failure alert` posts every
-failed production run to Slack with a run link built from `N8N_EDITOR_BASE_URL` (D25).
-Details in `docs/phases/01-backbone.md`. Update this line as steps complete.
+Phase 1, step 1.13 (server rehearsal on a Multipass VM). Step 1.12 is done: workflows and
+secret-free credential stubs live in `n8n/`, `scripts/restore-n8n.sh` rebuilds an empty n8n
+from them (D28), `docs/RESTORE.md` is the guide, and a rehearsal in a throwaway n8n
+exported back with only `versionId` changed. Details in `docs/phases/01-backbone.md`.
+Update this line as steps complete.

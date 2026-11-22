@@ -1,6 +1,6 @@
 # Phase 1: Backbone (no AI)
 
-**Status:** in progress, started 2026-11-11. Current step: 1.12.
+**Status:** in progress, started 2026-11-11. Current step: 1.13.
 
 **Environment:** parts A to E run locally on the laptop, part F on a server.
 
@@ -238,7 +238,7 @@ in all three places. See D8 in [../DECISIONS.md](../DECISIONS.md).
 
 ### Part E: keep it and show it
 
-- [ ] **1.12 Workflows into the repo**
+- [x] **1.12 Workflows into the repo**
   - Goal: the repo is the source of truth. n8n stores workflows in its own database, which
     is not in git.
   - Build: export each workflow as JSON into `n8n/workflows/`. Check that no secret is in
@@ -295,7 +295,10 @@ cloudflared/config.yml  tunnel ingress rules (which paths are public)
 .env.example            every variable the stack needs, without values
 .gitignore              ignores .env
 n8n/workflows/          exported workflow JSON
-docs/                   this documentation
+n8n/credentials/        credential stubs: IDs, names, types, no secrets
+scripts/                export, restore and webhook subscription scripts
+docker-compose.restore-test.yml  throwaway n8n for rehearsing a restore
+docs/                   this documentation, including RESTORE.md
 ```
 
 ## Decisions made in this phase
@@ -413,6 +416,21 @@ most useful section for the post, so write it when it happens.
   for a private editor and useless as a link. Fixed with
   `N8N_EDITOR_BASE_URL=http://localhost:5678/` and `docker compose up -d`. On the server
   (1.13) it becomes the Tailscale address.
+- **2026-11-22, step 1.12: the throwaway n8n could not take port 5679 inside.** The plan was
+  to run the rehearsal n8n on 5679 so it sits next to the real one on 5678. Inside the
+  container, 5679 is already n8n's task broker (the process that hands Code node work to
+  the task runner). Fixed by mapping laptop port 5679 to container port 5678, so only the
+  outside number changes.
+- **2026-11-22, step 1.12: a second import wiped a filled-in credential.** In the rehearsal
+  a credential's secret was pasted in, then the import ran again. Import overwrites by ID,
+  so the secret-free stub replaced the filled credential and the secret was gone. Fixed
+  with a guard in `scripts/restore-n8n.sh`: it counts credentials and workflows first and
+  refuses to run on an n8n that has any. Restore is for an empty n8n only.
+- **2026-11-22, step 1.12: logging in to one n8n logged out the other.** With the real n8n
+  on `localhost:5678` and the throwaway on `localhost:5679`, each login ended the other
+  session. Browsers scope cookies by host, not port, and both instances use a cookie named
+  `n8n-auth` on `localhost`. Fixed by opening the throwaway in a private window (opening
+  it as `127.0.0.1:5679` also works, since that counts as a different host).
 
 ## Proof
 
@@ -461,3 +479,6 @@ Real runs only. If a number has not been measured, it does not go here.
 | 2026-11-20 | 1.12 (part): `scripts/subscribe-webhook.sh` (client credentials token, then `webhookSubscriptions` filtered by topic `INVENTORY_LEVELS_UPDATE`, matched on `uri` with `jq`, `webhookSubscriptionCreate` only when no match), run against the live store | "Already subscribed: gid://shopify/WebhookSubscription/1722870104225 -> https://hooks.mjesar.dpdns.org/webhook/shopify/inventory-levels-update", the subscription made by hand at 1.7, so a second run creates no duplicate |
 | 2026-11-20 | 1.12 (part): `tunnel:` line and both `hostname:` keys removed from `cloudflared/config.yml` (D26). Checked first on a copy with `ingress rule` against a made-up host, then `docker compose restart cloudflared` | `ingress validate` OK; for `https://hooks.example.com`, `/webhook/...` matched rule #0, `/healthz` rule #1, `/signin` and `/` the 404 catch-all. Live: "Starting tunnel tunnelID=48bdbbd9-..." taken from the token, 4 connections registered (`khi01` x2, `sin15`, `sin11`). `/healthz` 200 `{"status":"ok"}`, `/signin` 404 with an empty body (catch-all), `/webhook/does-not-exist` 404 from n8n ("webhook ... is not registered") |
 | 2026-11-20 | 1.12 (part): `Settings` node added to both workflows (D27); the token URL, GraphQL URL, Slack channel, message link and threshold now read from it. Both published, stock changed, then `./scripts/export-workflows.sh` | Execution #36 succeeded in 2.692 s, `Settings` between `Skip repeat deliveries` and `Below threshold?`. Slack `ok: true` on channel `C0CHS4WG5DE`; text "Low stock: The Collection Snowboard: Hydrogen. 3 left at this location, 3 in total." with the link `https://admin.shopify.com/store/test-store-plus-9eiwvuh4/products/8559151841441`. In the export, the store handle appears once and the channel once per workflow, all inside `Settings`; no `shared` block, `pinData` empty |
+| 2026-11-22 | 1.12 (part): throwaway n8n from `docker-compose.restore-test.yml` (same image `2.47.4`, own project name and volume, no tunnel), owner account created, then `./scripts/restore-n8n.sh` | Credentials then workflows imported. Credentials arrive with their stub IDs and Allowed Domains; plain values in a stub are encrypted on import. Workflows keep their IDs and arrive unpublished; nodes show the right credential by name, so links by ID survive |
+| 2026-11-22 | 1.12 (part): the three secrets pasted by hand (Crypto: Hmac Secret only; Custom Auth: the JSON body; Slack: Access Token only), then `Failure alert` and `Low stock alert` published | Both published with no node warnings |
+| 2026-11-22 | 1.12: `./scripts/export-workflows.sh` pointed at the throwaway (`COMPOSE_FILE`, `COMPOSE_PROJECT_NAME`), then `git diff n8n/workflows` | `2 files changed, 4 insertions(+), 4 deletions(-)`: only `versionId` and `activeVersionId` differ in each file (publishing makes a new version). Nodes, connections, settings, workflow IDs and credential links match the repo, and `versionCounter` is unchanged (20 and 127). Then `git checkout n8n/workflows` and `docker compose down -v` removed the throwaway, its volume and its secrets |
