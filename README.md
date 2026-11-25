@@ -3,6 +3,8 @@
 **An AI team that finds where a Shopify store is quietly losing sales, drafts the fix, and
 waits for the owner's approval.**
 
+Project page: [mjesar.github.io/projects/store_ai_crew](https://mjesar.github.io/projects/store_ai_crew/) · Built by [Mohammad Ali Jesar](https://mjesar.github.io/)
+
 > Status: early. Phase 1 of 4 is in progress and nothing here runs yet. This README is the
 > plan, and it gets replaced with real results as each phase is finished.
 
