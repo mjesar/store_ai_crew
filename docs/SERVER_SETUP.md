@@ -373,8 +373,13 @@ ssh ubuntu@100.117.248.13                           # logs in
 ssh -o ConnectTimeout=5 ubuntu@10.97.0.38           # Connection timed out
 ```
 
-From here `multipass shell` no longer works on the VM, since it comes in over the Multipass
-network. That is the lock working.
+From here `multipass shell` and `multipass exec` no longer work on the VM, since both come
+in over SSH on the Multipass network (`multipass exec` fails with "Timeout connecting to
+10.97.0.38"). That is the lock working. Run commands over Tailscale instead:
+
+```
+ssh ubuntu@100.117.248.13 'cd ~/store_ai_crew && sudo docker compose ps'
+```
 
 ## 9. The Docker port trap (seen once, on purpose)
 
