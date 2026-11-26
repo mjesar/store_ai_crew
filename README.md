@@ -3,10 +3,12 @@
 **An AI team that finds where a Shopify store is quietly losing sales, drafts the fix, and
 waits for the owner's approval.**
 
+Project page: [mjesar.github.io/projects/store_ai_crew](https://mjesar.github.io/projects/store_ai_crew/) · Built by [Mohammad Ali Jesar](https://mjesar.github.io/)
+
 > Status: early. Phase 1 of 4 is in progress. The backbone already runs: a stock drop in a
 > Shopify dev store reaches Slack within seconds, through a self-hosted n8n on a hardened
-> local VM. Moving it to an always-on cloud server is next. There is no AI yet. This README is the plan, and it gets replaced with real
-> results as each phase is finished.
+> local VM. Moving it to an always-on cloud server is next. There is no AI yet. This README
+> is the plan, and it gets replaced with real results as each phase is finished.
 
 ## The problem
 
