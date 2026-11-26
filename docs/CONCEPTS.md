@@ -12,7 +12,55 @@ went wrong. Notes come from doing the step, not from reading about it.
 
 - **Virtual machine vs container** (step 1.13): a VM is a whole computer, a container is
   one program in a sealed box. Why the server rehearsal uses a VM with containers inside.
+
+  A VM pretends to be a full computer: its own kernel, its own disk, its own network
+  address, its own users. A container shares the kernel of the machine it runs on and
+  only seals off one program and its files. So a VM is a flat in a building, with its own
+  front door and its own locks; a container is a room inside a flat. The rehearsal needed
+  the flat, because the things being practised (SSH, a firewall, updates that reboot the
+  machine) belong to a whole computer, and a container cannot reboot or have its own
+  firewall. Multipass makes one in a minute from Canonical's Ubuntu image, and
+  `multipass delete --purge` throws it away, which is what made a full rebuild cheap
+  enough to actually do. Inside, Docker runs the containers exactly as on the laptop.
+
 - **Running a server** (1.13, 1.14): SSH keys, `apt`, `systemd`, logs, firewall.
+
+  *SSH with a key.* SSH gives you a terminal on another machine. A key pair replaces the
+  password: the private key never leaves the laptop, and the server keeps only the public
+  half in `~/.ssh/authorized_keys`. Like a padlock you hand out: anyone may hold the open
+  padlock (public key), only you hold the key that opens it (private key). The first
+  connection shows the server's *host key fingerprint*, the server's own ID. SSH saves it,
+  and if a different machine ever answers at that address it refuses loudly. On the
+  rebuild the fingerprint was new (`4dZAlfRi...`, a new VM makes a new ID) and the same
+  over both addresses, which is how you know the Tailscale address reaches the same VM.
+  `sshd -T` prints the settings SSH really uses after reading every config file; for SSH
+  the *first* value read wins, so the project's file is named `10-hardening.conf` to come
+  before Ubuntu's `60-cloudimg-settings.conf`. Restarting SSH does not drop the session
+  you are in, so the safe habit is: change, test with `sshd -t`, restart, then log in from
+  a second terminal before closing the first.
+
+  *Updates on their own.* `apt` is Ubuntu's package manager: `apt update` refreshes the
+  list of what exists, `apt upgrade` installs it. `unattended-upgrades` does that every day
+  for security fixes only, from Ubuntu's own sources and not Docker's, so Docker upgrades
+  stay a choice. A new kernel only takes effect after a reboot, and by default nothing
+  reboots, so the project's own file turns on a reboot at 04:00 when a fix needs it (D29).
+  The test that matters: after `sudo reboot`, both containers were "Up" again with no one
+  logged in, because systemd starts Docker at boot and Docker restarts every container
+  marked `restart: unless-stopped`.
+
+  *A firewall, and the trap Docker sets.* `ufw` is Ubuntu's simple firewall. The rule is
+  "deny everything coming in, allow everything going out, except SSH arriving on the
+  Tailscale interface" (D30). Going out stays open because the tunnel, Slack, Shopify,
+  updates and Tailscale all work by the server calling out. Two surprises. First,
+  `ufw enable` asks "Proceed? (y|n)" and, when commands are pasted together, reads the
+  next pasted line as the answer and cancels, leaving the firewall off; it has to be
+  typed alone. Second, the Docker port trap: a port published as `5678:5678` opens on
+  every address, and Docker writes its own firewall rules that are checked before ufw's.
+  Seen on purpose: with ufw active and no rule for 5678, the editor still answered from
+  the laptop. The fix is in the compose file, not the firewall: publish on `127.0.0.1`
+  only, so the port exists inside the server and nowhere else. A test of a firewall must
+  run from outside: run on the server itself, the VM connected to itself, which no
+  firewall filters, and the result looked like a failure but proved nothing.
 - **Docker Compose** (1.3): describing a running service in a file.
 
   An image (`registry/name:tag`) is the packaged program, and a container is one
@@ -75,6 +123,15 @@ went wrong. Notes come from doing the step, not from reading about it.
   Why the key exists: n8n stores tokens (Slack, Shopify) in its database, encrypted
   with this key. The database alone is useless to a thief. The database plus the key
   gives everything, so they are kept apart.
+
+  *Each container gets only what it uses* (1.13, D31). `env_file: .env` copies every value
+  in the file into the container. Compose's `environment:` list with `${NAME}` still reads
+  `.env`, but passes in only the names listed. n8n needed four of nine; the Shopify secret
+  and the tunnel token had been sitting inside it for no reason. n8n blocks `$env` in nodes
+  by default since 2.0 (found by reading its code, because two of its doc pages disagree),
+  but a secret that is not in the container cannot leak by any route, blocked or not. The
+  change needed `docker compose up -d`, not `restart`: a container's environment is fixed
+  when it is created, and a restart reuses the same container.
 
 ### n8n
 
@@ -310,7 +367,36 @@ went wrong. Notes come from doing the step, not from reading about it.
   404, so webhook paths do reach n8n.
 
 - **Private network with Tailscale** (1.13): reaching a server without exposing it.
-- **Public in, private admin**: only the webhook path faces the internet.
+
+  Tailscale puts your own devices on one private network (a *tailnet*), wherever they
+  are. Each gets a `100.x.x.x` address that only the other members can reach. Tailscale's
+  servers keep the member list and hand out keys; the traffic itself goes straight between
+  the devices, encrypted with WireGuard, so Tailscale cannot read it. For this project it
+  means the server needs no open door on the internet for SSH: the firewall allows SSH
+  only on the `tailscale0` interface, and from anywhere else the server does not answer at
+  all, so a connection just times out. A server's login to the tailnet expires after 180
+  days by default; on a server reachable only over Tailscale that would be a silent
+  lockout, so key expiry is turned off for the server alone. A rebuilt server is a new
+  device: it gets a new address, and the old entry has to be removed first or the new one
+  joins as `store-ai-crew-1`.
+
+- **An SSH tunnel to a private editor** (1.13): the n8n editor listens on `127.0.0.1:5678`
+  inside the server, which nothing outside can reach. `ssh -N -L 5680:localhost:5678
+  ubuntu@<tailscale-ip>` builds a pipe: whatever the laptop sends to its own port 5680
+  comes out at port 5678 inside the server. `-N` means "no shell, only the pipe", so the
+  terminal looks frozen while it works. The browser opens `127.0.0.1:5680`, not
+  `localhost:5680`, because n8n's login cookie belongs to a host name and not a port, so a
+  second n8n on `localhost` would log the first one out.
+
+- **Public in, private admin** (1.13): only the webhook path faces the internet.
+
+  The server has exactly two ways in, and they are separate on purpose. Shopify's
+  webhooks come through Cloudflare and the tunnel, which `cloudflared` opened from the
+  inside, and only `/webhook/` and `/healthz` are let through. Everything an owner does
+  (SSH, the editor) comes over Tailscale, which only the owner's devices can join.
+  Nothing listens on a public address at all. So the public road cannot reach the admin
+  tools, and the admin road is invisible to the public. The picture of both roads is at
+  the top of [SERVER_SETUP.md](SERVER_SETUP.md).
 
 ## Phase 2: Ops agent
 
