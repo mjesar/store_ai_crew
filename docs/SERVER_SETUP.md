@@ -11,6 +11,8 @@ so it is somewhere to make mistakes for free, not a place to run the store from.
 ## The finished server at a glance
 
 What the nine parts below build, and the only roads in and out. The numbers match the parts.
+Both pictures are drawn by [images/make-diagrams.py](images/make-diagrams.py); change them
+there and run it, rather than editing the SVGs.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="images/server-setup-network-dark.svg">
