@@ -126,8 +126,9 @@ Rules:
 
 ## Current status
 
-Phase 1, step 1.13 (server rehearsal on a Multipass VM). Step 1.12 is done: workflows and
-secret-free credential stubs live in `n8n/`, `scripts/restore-n8n.sh` rebuilds an empty n8n
-from them (D28), `docs/RESTORE.md` is the guide, and a rehearsal in a throwaway n8n
-exported back with only `versionId` changed. Details in `docs/phases/01-backbone.md`.
+Phase 1, step 1.14 (move to Oracle Cloud Always Free). Step 1.13 is done: the stack runs on
+a hardened Multipass VM (keys-only SSH over Tailscale, `ufw`, automatic updates with a 04:00
+reboot, n8n given only its own variables: D29 to D31), and the VM was deleted and rebuilt
+from `docs/SERVER_SETUP.md` alone, which is the script for 1.14. Details in
+`docs/phases/01-backbone.md`.
 Update this line as steps complete.
