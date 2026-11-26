@@ -45,7 +45,18 @@ SSH instead.
 
 ## 2. Install Docker
 
-On the server. This follows Docker's own guide for Ubuntu
+On the server. "On the server" in these notes means a terminal inside the VM, opened from
+the laptop with:
+
+```
+multipass shell store-ai-crew
+```
+
+The prompt becomes `ubuntu@store-ai-crew`. This works only until part 8 turns on the
+firewall; from part 5 on, SSH over Tailscale is the way in. On the cloud machine there is
+no Multipass, so it is SSH from the start.
+
+This follows Docker's own guide for Ubuntu
 ([docs.docker.com/engine/install/ubuntu](https://docs.docker.com/engine/install/ubuntu/)),
 the apt repository method. Ubuntu's own `docker.io` package is skipped because it lags
 behind Docker's releases. A fresh machine has no old Docker packages, so the guide's
@@ -83,16 +94,24 @@ sudo apt update
 `apt update` must show a line for `download.docker.com/linux/ubuntu resolute InRelease`
 with no signature error.
 
-List the versions and install the newest one, pinned, so a rebuild gets the same engine:
+Install the newest version by its exact version string, so the version running is a
+choice made at this step and written down, not whatever apt picked that day. Do not copy a version from these notes: a newer one has usually shipped by then. List
+what exists first; the top line is the newest:
 
 ```
 apt list --all-versions docker-ce
-VERSION_STRING=5:29.10.0-1~ubuntu.26.04~resolute
+```
+
+Put that version string (the part after `docker-ce/resolute`, for example
+`5:29.10.1-1~ubuntu.26.04~resolute`) in place of `<version>`:
+
+```
+VERSION_STRING=<version>
 sudo apt install docker-ce=$VERSION_STRING docker-ce-cli=$VERSION_STRING containerd.io docker-buildx-plugin docker-compose-plugin
 ```
 
-On an Arm machine the version string is the same, and apt picks the `arm64` build. Check
-the list first, since a newer version may exist by then.
+On an Arm machine the version string is the same, and apt picks the `arm64` build. Record
+the version installed in the table below.
 
 Check:
 
@@ -105,9 +124,9 @@ docker compose version
 `hello-world` printing "Hello from Docker!" proves the whole chain: the client reaches the
 engine, the engine pulls from Docker Hub, and a container runs.
 
-| Piece | Version installed (2026-11-23) |
+| Piece | Version installed (2026-11-26 rebuild) |
 | --- | --- |
-| Docker Engine and CLI | 29.10.0 (pinned) |
+| Docker Engine and CLI | 29.10.1 (pinned; the first build on 2026-11-23 got 29.10.0) |
 | containerd | 2.4.2 |
 | runc | 1.5.3 |
 | Docker Compose plugin | 5.8.0 |
@@ -121,8 +140,9 @@ are a `git pull` instead of copying files by hand.
 git clone https://github.com/mjesar/store_ai_crew.git
 ```
 
-The `.env` holds the secrets and is never in git, so it is copied from the laptop. On the
-laptop, from the project folder:
+The `.env` holds the secrets and is never in git, so it is copied from the laptop. This
+runs on the laptop, not in the VM shell (`exit` it, or use a second terminal), from the
+laptop's own copy of the project, the folder where `.env` lives:
 
 ```
 multipass transfer .env store-ai-crew:/home/ubuntu/store_ai_crew/.env
@@ -150,8 +170,12 @@ a command inside the VM. `>>` appends, so the key Multipass itself uses stays in
 
 ```
 multipass exec store-ai-crew -- bash -c 'cat >> ~/.ssh/authorized_keys' < ~/.ssh/id_ed25519.pub
-ssh ubuntu@10.97.0.38
+ssh ubuntu@<vm-ip>
 ```
+
+`<vm-ip>` is the `IPv4` line of `multipass info store-ai-crew`. It changes each time the VM
+is created (`10.97.0.38` the first time, `10.97.0.83` on the rebuild), so take it from
+there, not from these notes.
 
 Done when the login works without a password. The first connection asks to trust the
 server's fingerprint; after that, SSH warns if a different machine answers at that address.
@@ -176,7 +200,10 @@ Free "Personal" plan: up to 6 users, unlimited devices, non-commercial use (chec
 2026-11-23 on tailscale.com/pricing).
 
 On the laptop and then on the server, the install script from Tailscale's Linux guide
-(it adds Tailscale's apt repository and installs the package):
+(it adds Tailscale's apt repository and installs the package). A laptop already in the
+tailnet skips this. When rebuilding a server, first remove the old one in the admin
+console (Machines, `...`, Remove), or the new one joins under a changed name such as
+`store-ai-crew-1`.
 
 ```
 curl -fsSL https://tailscale.com/install.sh | sh
@@ -192,17 +219,18 @@ tailnet.
 Then SSH over the Tailscale address, from the laptop:
 
 ```
-ssh ubuntu@100.117.248.13
+ssh ubuntu@<tailscale-ip>
 ```
 
-SSH asks again to trust the host, because it remembers hosts by address. The fingerprint
-must match the one from the first login (`SHA256:qTlXUVyF...`); here it did, and SSH
-also noted the key was already known under another address.
+`<tailscale-ip>` is what `tailscale ip -4` printed on the server. SSH asks again to trust
+the host, because it remembers hosts by address. The fingerprint must match the one from
+the first login in part 4; when it does, SSH also notes the key is already known under
+another address. A different fingerprint means a different machine answered: stop there.
 
 | Device | Tailnet name | Address | Tailscale |
 | --- | --- | --- | --- |
 | Laptop | `mj-01` | `100.102.132.58` | 1.104.7 |
-| Rehearsal VM | `store-ai-crew` | `100.117.248.13` | 1.104.7 |
+| Rehearsal VM | `store-ai-crew` | `100.75.10.127` (first build: `100.117.248.13`) | 1.104.7 |
 
 Last, in the Tailscale admin console (Machines, the `...` menu on the server's row):
 **Disable key expiry** for the server only. A device's login expires after 180 days by
@@ -227,7 +255,7 @@ only on `127.0.0.1` inside the server, so this is the only way in. The command l
 while the pipe is open; Ctrl+C closes it:
 
 ```
-ssh -N -L 5680:localhost:5678 ubuntu@100.117.248.13
+ssh -N -L 5680:localhost:5678 ubuntu@<tailscale-ip>
 ```
 
 Then browse to `http://127.0.0.1:5680`. Laptop port 5680, because a local n8n may already
@@ -235,7 +263,11 @@ use 5678. Use `127.0.0.1` and not `localhost`: n8n's login cookie is per host na
 per port, so `localhost:5680` would log the laptop's own editor out.
 
 Create the owner account (a placeholder email such as `owner@example.com` works: n8n uses
-it only as a login name and sends no mail). Then restore the workflows and credential
+it only as a login name and sends no mail). The account lives in n8n's database on this
+machine, not in the repo, so every new machine needs it once; restarts and upgrades keep
+it. It is not scripted, since that would put one more password in `.env` for a step done
+once per machine. Create it before the restore: imported workflows and credentials need an
+owner. Then restore the workflows and credential
 stubs, following [RESTORE.md](RESTORE.md) steps 4 to 6. `jq` is needed by the script and
 was already on the Ubuntu image; `sudo apt install jq` is harmless if it is.
 
@@ -288,7 +320,7 @@ SSH drops. About 30 seconds later, log in again over Tailscale and check that th
 came back on its own, with no one starting it:
 
 ```
-ssh ubuntu@100.117.248.13
+ssh ubuntu@<tailscale-ip>
 cd ~/store_ai_crew && sudo docker compose ps    # both containers "Up"
 ```
 
@@ -358,7 +390,19 @@ use is never cut off. Run this from an SSH session over Tailscale, not `multipas
 
 ```
 sudo ufw default deny incoming && sudo ufw default allow outgoing && sudo ufw allow in on tailscale0 to any port 22 proto tcp
+```
+
+Then enable it on its own line, not pasted together with the next command. `ufw enable`
+asks "Proceed with operation (y|n)?", and a pasted line after it is read as the answer, so
+it cancels and leaves the firewall `inactive` (seen on the rebuild). Type `y` by hand:
+
+```
 sudo ufw enable
+```
+
+Then:
+
+```
 sudo ufw status verbose
 ```
 
@@ -369,16 +413,21 @@ Check both doors from the **laptop** (the `➜` prompt, not a tab still logged i
 server, or the test only reaches the server from itself):
 
 ```
-ssh ubuntu@100.117.248.13                           # logs in
-ssh -o ConnectTimeout=5 ubuntu@10.97.0.38           # Connection timed out
+ssh ubuntu@<tailscale-ip>                            # logs in
+ssh -o ConnectTimeout=5 ubuntu@<vm-ip>               # Connection timed out
 ```
+
+If the second command asks to trust a host, or ends in "Permission denied (publickey)", it
+ran on the server, which connected to itself: a firewall filters traffic from outside, not
+a machine talking to itself, and the server holds no private key. Leave the server
+(`exit`) and run it again from the laptop.
 
 From here `multipass shell` and `multipass exec` no longer work on the VM, since both come
 in over SSH on the Multipass network (`multipass exec` fails with "Timeout connecting to
-10.97.0.38"). That is the lock working. Run commands over Tailscale instead:
+<vm-ip>"). That is the lock working. Run commands over Tailscale instead:
 
 ```
-ssh ubuntu@100.117.248.13 'cd ~/store_ai_crew && sudo docker compose ps'
+ssh ubuntu@<tailscale-ip> 'cd ~/store_ai_crew && sudo docker compose ps'
 ```
 
 ## 9. The Docker port trap (seen once, on purpose)
@@ -397,7 +446,7 @@ sudo docker compose up -d n8n && sudo docker compose ps n8n    # 0.0.0.0:5678->5
 From the laptop, with ufw active and no rule for 5678:
 
 ```
-curl -s -m 5 http://10.97.0.38:5678/healthz    # {"status":"ok"}
+curl -s -m 5 http://<vm-ip>:5678/healthz         # {"status":"ok"}
 ```
 
 The editor answers through the firewall. On a cloud machine with a public address, this
@@ -411,7 +460,7 @@ git checkout docker-compose.yml && sudo docker compose up -d n8n && sudo docker 
 From the laptop again (two separate lines, since `$?` holds the result of the line before):
 
 ```
-curl -s -m 5 http://10.97.0.38:5678/healthz
+curl -s -m 5 http://<vm-ip>:5678/healthz
 echo "exit code: $?"    # 28, timed out
 ```
 
