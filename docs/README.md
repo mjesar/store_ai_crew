@@ -9,6 +9,7 @@ the page for the current phase.
 | [phases/01-backbone.md](phases/01-backbone.md) | Phase 1 step by step: server, n8n, Shopify webhook, Slack alert. Checklist, decisions, what broke, proof. |
 | [DECISIONS.md](DECISIONS.md) | Every decision with its reason, the open questions, and the facts still to confirm. |
 | [RESTORE.md](RESTORE.md) | Rebuilding n8n from the repo and `.env`: what comes back by script, the three secrets pasted by hand, and how to rehearse it. |
+| [SERVER_SETUP.md](SERVER_SETUP.md) | Every command that turns a fresh Ubuntu machine into the server, in order, with why. Written on the rehearsal VM, reused for the cloud machine. |
 | [SECURITY.md](SECURITY.md) | What faces the internet and what does not, and each security measure with the step that builds it. |
 | [CONCEPTS.md](CONCEPTS.md) | Learning notes, one per idea, written when the idea is first met. |
 

@@ -7,8 +7,14 @@ services:
     ports:
       # laptop_address:laptop_port:container_port. 127.0.0.1 = this machine only.
       - "127.0.0.1:5678:5678"
-    # Loads N8N_ENCRYPTION_KEY (and later secrets) from the untracked .env file.
-    env_file: .env
+    # Only the variables n8n itself uses, not the whole .env: the Shopify secret and the tunnel
+    # token stay out of this container, so no node can read them, whatever n8n allows.
+    # $env in nodes is also blocked by default since n8n 2.0 (N8N_BLOCK_ENV_ACCESS_IN_NODE).
+    environment:
+      N8N_ENCRYPTION_KEY: ${N8N_ENCRYPTION_KEY}
+      N8N_WEBHOOK_URL: ${N8N_WEBHOOK_URL}
+      N8N_PROXY_HOPS: ${N8N_PROXY_HOPS}
+      N8N_EDITOR_BASE_URL: ${N8N_EDITOR_BASE_URL}
     volumes:
       # n8n keeps its database and settings here; the named volume outlives the container.
       - n8n_data:/home/node/.n8n

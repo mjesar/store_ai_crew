@@ -1,6 +1,6 @@
 # Phase 1: Backbone (no AI)
 
-**Status:** in progress, started 2026-11-11. Current step: 1.13.
+**Status:** in progress, started 2026-11-11. Current step: 1.14.
 
 **Environment:** parts A to E run locally on the laptop, part F on a server.
 
@@ -199,8 +199,8 @@ in all three places. See D8 in [../DECISIONS.md](../DECISIONS.md).
   - As built, after `Skip repeat deliveries`:
     1. **If** node `Below threshold?`: `{{ $json.body.available }}` Number "is less than"
        `5`. A Number comparison, because as strings `"10"` sorts before `"5"`. The
-       threshold sits in the node: `$env` is to be blocked at 1.13, and n8n Variables are
-       a paid feature. The false branch is left empty, so the run simply ends there.
+       threshold sits in the node: `$env` is blocked (n8n's default since 2.0, D31), and
+       n8n Variables are a paid feature. The false branch is left empty, so the run simply ends there.
     2. **HTTP Request** `Get Shopify token`: `POST` to
        `https://<store>.myshopify.com/admin/oauth/access_token`, with the client ID and
        secret coming from a **Custom Auth** credential (`{"body": {...}}`) that may only
@@ -250,20 +250,25 @@ in all three places. See D8 in [../DECISIONS.md](../DECISIONS.md).
 
 ### Part F: from laptop to server
 
-- [ ] **1.13 Server rehearsal on a Multipass VM**
+- [x] **1.13 Server rehearsal on a Multipass VM** (done 2026-11-26)
   - Goal: learn to set up and secure a server somewhere a mistake costs nothing.
-  - Build:
+  - Build, in the order it was done (SSH comes before the stack, because the n8n editor
+    is reached through an SSH tunnel):
     1. Install Multipass, run `multipass find`, and launch the newest Ubuntu LTS
        (2 CPUs, 2 GB memory, 10 GB disk).
     2. Install Docker inside it with Docker's official Ubuntu instructions (apt
        repository method).
-    3. Get the repo and `.env` onto it, import the workflows (1.12), and run the stack.
-    4. Install Tailscale on the laptop and the VM, and SSH over the Tailscale address.
-    5. Apply the server measures in [../SECURITY.md](../SECURITY.md): keys-only SSH,
-       root login off, firewall, automatic security updates.
-    6. Try the Docker port trap on purpose: publish a port without `127.0.0.1`, turn on
+    3. Get the repo and `.env` onto it.
+    4. Add the laptop's SSH key, install Tailscale on the laptop and the VM, and SSH over
+       the Tailscale address.
+    5. Start n8n, import the workflows (1.12), then move the tunnel from the laptop.
+    6. Apply the server measures in [../SECURITY.md](../SECURITY.md): updates with an
+       automatic reboot (D29), root login off, firewall allowing SSH on Tailscale only
+       (D30), and n8n given only its own variables (D31).
+    7. Try the Docker port trap on purpose: publish a port without `127.0.0.1`, turn on
        `ufw`, and see that the port is still reachable. Then fix it.
-  - Write down every command that worked. That list is the script for 1.14.
+  - Every command that worked is in [../SERVER_SETUP.md](../SERVER_SETUP.md), the script
+    for 1.14.
   - Done when: the stack runs on the VM, SSH works only over Tailscale with keys, and the
     port trap has been seen and fixed. Then delete the VM and rebuild it from your notes
     once, to prove the notes are complete.
@@ -275,9 +280,14 @@ in all three places. See D8 in [../DECISIONS.md](../DECISIONS.md).
     tested restore. The `cloudflared` service comes along in the compose file: stop the
     stack on the laptop or VM first, so the tunnel runs in one place. The Shopify webhook
     address does not change.
+  - Give the machine more disk than the VM's 10 GB: after setup the VM's disk was 57%
+    full (Docker, the n8n image, one round of updates), before any backups.
   - **Confirm:** the current Always Free machine sizes and limits before signing up.
-  - If Oracle sign-up fails or has no free capacity, keep running on the Multipass VM
-    and record that in DECISIONS.md.
+  - If Oracle sign-up fails or has no free capacity, the fallback is Google Cloud's free
+    e2-micro (no end date, but only 1 GB of memory), once n8n is shown to stay stable on
+    it. AWS and Azure free VMs end after 6 and 12 months, so they are trials, not a home.
+    The Multipass VM is not a fallback: it runs only while the laptop is on. **Confirm**
+    both offers on the providers' own pages, and record the choice in DECISIONS.md.
   - This step can move to the start of phase 2 if phase 1 is otherwise ready to show.
   - Done when: the laptop is closed and a stock change still alerts.
 
@@ -329,6 +339,11 @@ Short version here, full reasoning in [../DECISIONS.md](../DECISIONS.md).
   for every copy of the repo; the token in `.env` picks the tunnel.
 - D27 (1.12): store handle, Slack channel and threshold live in one `Settings` node per
   workflow, not in `.env`, so n8n's environment stays closed to expressions.
+- D29 (1.13): the server installs security updates daily and reboots itself at 04:00 when
+  a fix needs it.
+- D30 (1.13): SSH is kept to Tailscale by the firewall (`ufw`, port 22 on `tailscale0`
+  only), not by SSH's own listening address, which can break at boot.
+- D31 (1.13): n8n's container gets only the four variables it uses, not the whole `.env`.
 
 ## What broke
 
@@ -431,6 +446,24 @@ most useful section for the post, so write it when it happens.
   session. Browsers scope cookies by host, not port, and both instances use a cookie named
   `n8n-auth` on `localhost`. Fixed by opening the throwaway in a private window (opening
   it as `127.0.0.1:5679` also works, since that counts as a different host).
+- **2026-11-26, step 1.13: the firewall did not turn on.** On the rebuild the three `ufw`
+  lines were pasted together. `ufw enable` asks "Proceed with operation (y|n)?" and read
+  the next pasted line as its answer, so it cancelled, and `ufw status` said `inactive`.
+  The rules had been saved; only the switch was off. Fixed by running `ufw enable` alone
+  and typing `y`, and the notes now keep it in a block of its own.
+- **2026-11-26, step 1.13: a firewall test ran on the wrong machine.** The check that the
+  Multipass address is closed was typed into a terminal still logged into the VM. The VM
+  connected to itself, which a firewall does not filter, and failed with "Permission
+  denied (publickey)", since the VM holds no private key. That looks like a result but
+  proves nothing. Run again from the laptop, it timed out as it should. The notes now name
+  the signs: a trust prompt or `publickey` means the command ran on the server.
+- **2026-11-26, step 1.13: the notes had gaps that only a rebuild could find.** Deleting
+  the VM and rebuilding it from `SERVER_SETUP.md` alone found eight: no way into the VM
+  named before the first server command, a Docker version that could be pasted instead of
+  looked up (29.10.1 had shipped since), a laptop command not marked as one, the first
+  VM's addresses and fingerprint written as literals in commands, two Tailscale cases (a
+  laptop already in the tailnet, the old machine to remove first), the owner account not
+  explained, and the two firewall traps above. All are fixed in the notes.
 
 ## Proof
 
@@ -482,3 +515,14 @@ Real runs only. If a number has not been measured, it does not go here.
 | 2026-11-22 | 1.12 (part): throwaway n8n from `docker-compose.restore-test.yml` (same image `2.47.4`, own project name and volume, no tunnel), owner account created, then `./scripts/restore-n8n.sh` | Credentials then workflows imported. Credentials arrive with their stub IDs and Allowed Domains; plain values in a stub are encrypted on import. Workflows keep their IDs and arrive unpublished; nodes show the right credential by name, so links by ID survive |
 | 2026-11-22 | 1.12 (part): the three secrets pasted by hand (Crypto: Hmac Secret only; Custom Auth: the JSON body; Slack: Access Token only), then `Failure alert` and `Low stock alert` published | Both published with no node warnings |
 | 2026-11-22 | 1.12: `./scripts/export-workflows.sh` pointed at the throwaway (`COMPOSE_FILE`, `COMPOSE_PROJECT_NAME`), then `git diff n8n/workflows` | `2 files changed, 4 insertions(+), 4 deletions(-)`: only `versionId` and `activeVersionId` differ in each file (publishing makes a new version). Nodes, connections, settings, workflow IDs and credential links match the repo, and `versionCounter` is unchanged (20 and 127). Then `git checkout n8n/workflows` and `docker compose down -v` removed the throwaway, its volume and its secrets |
+| 2026-11-23 | 1.13 (part): Multipass 1.17.2, VM `store-ai-crew` from image `26.04` (2 CPUs, 2 GB, 10 GB). Docker from Docker's apt repository, pinned `5:29.10.0-1~ubuntu.26.04~resolute` | `multipass info`: Ubuntu 26.04.1 LTS, 368 MiB memory used at idle. `docker run hello-world` printed "Hello from Docker!". Engine and CLI 29.10.0, containerd 2.4.2, runc 1.5.3, Compose 5.8.0 |
+| 2026-11-23 | 1.13 (part): laptop key added to the VM's `authorized_keys`, Tailscale 1.104.7 on laptop and VM, key expiry disabled for the VM | `ssh ubuntu@100.117.248.13` logs in with no password. The host fingerprint (`SHA256:qTlXUVyF...`) matches the one seen over the Multipass address, and SSH reports the key already known under another name |
+| 2026-11-23 | 1.13 (part): repo cloned on the VM, `.env` copied and set to 600, `docker compose up -d n8n` only, editor opened through `ssh -N -L 5680:localhost:5678`, then `sudo ./scripts/restore-n8n.sh`, secrets pasted, both workflows published | "Successfully imported 3 credentials." and "Successfully imported 2 workflows.", the second run of the 1.12 restore on a machine other than the one it was written on |
+| 2026-11-23 | 1.13 (part): laptop stack stopped (`docker compose stop`), then `docker compose up -d cloudflared` on the VM, then stock lowered in the Shopify admin | 4 tunnel connections registered from the VM (`khi01` x2, `sin13`, `sin22`). Slack alert "Low stock: The Collection Snowboard: Hydrogen. 2 left at this location, 2 in total." with the Open in Shopify link, served end to end by the VM with the webhook address unchanged |
+| 2026-11-23 | 1.13 (part): `apt upgrade`, reboot, `unattended-upgrades` checked (already on) and set to reboot at 04:00 when needed (D29) | After `sudo reboot`, both containers "Up 20 seconds" and SSH over Tailscale worked with no one starting anything. Dry run: allowed origins include `resolute-security`, "No packages found that can be upgraded unattended". `apt-config dump` shows `Automatic-Reboot "true"` and `Automatic-Reboot-Time "04:00"` |
+| 2026-11-23 | 1.13 (part): `PermitRootLogin no` in `sshd_config.d/10-hardening.conf`; `ufw` deny incoming, allow outgoing, allow 22/tcp on `tailscale0` only (D30) | `sshd -T`: `permitrootlogin no`, `passwordauthentication no`, `kbdinteractiveauthentication no`, `pubkeyauthentication yes`. A fresh login over Tailscale works; from the laptop, `ssh -o ConnectTimeout=5 ubuntu@10.97.0.38` gives "Connection timed out" |
+| 2026-11-23 | 1.13 (part): Docker port trap. Port published as `5678:5678` on the VM with ufw active, then restored to `127.0.0.1:5678:5678` | Trap: `curl http://10.97.0.38:5678/healthz` from the laptop returned `{"status":"ok"}` while `ufw status` listed no rule for 5678. Fixed: the same request timed out (curl exit code 28) |
+| 2026-11-26 | 1.13 (part): end-to-end again after hardening. Checked first over Tailscale (`multipass exec` now times out, blocked by ufw), then stock lowered in the Shopify admin | Both VM containers "Up 38 hours", n8n bound to `127.0.0.1:5678`. `cloudflared` had dropped one connection on 2026-11-24 ("no recent network activity") and re-registered it at `khi01` 10 s later on its own. `https://hooks.mjesar.dpdns.org/healthz` 200 from the laptop. Slack alert "Low stock: The Collection Snowboard: Hydrogen. 4 left at this location, 4 in total." with the Open in Shopify link, so the reboot, ufw and SSH changes left the webhook path intact |
+| 2026-11-26 | 1.13 (part): rebuild from `SERVER_SETUP.md` alone. Tunnel moved back to the laptop (VM `cloudflared` stopped, laptop `docker compose start`), `multipass delete --purge`, old machine removed in Tailscale, then parts 1 to 6 followed as written | New VM `10.97.0.83`, same image hash `7b90593f5532`. Docker 29.10.1 (a patch had shipped since 29.10.0). Tailscale `100.75.10.127`, the same host fingerprint over both addresses (`SHA256:4dZAlfRi...`). Restore: "Successfully imported 3 credentials.", "Successfully imported 2 workflows.". Tunnel: 4 connections (`khi01` x2, `sin07`, `sin24`), laptop containers exited. Slack alert "Low stock: The Collection Snowboard: Hydrogen. 3 left at this location, 3 in total." Gaps found in the notes and fixed: no way into the VM named at part 2, a pasteable Docker version, `multipass transfer` not marked as a laptop command, the first VM's IP addresses and fingerprint written as literals, the owner account not explained |
+| 2026-11-26 | 1.13: rebuild, parts 7 to 9. `apt upgrade` (49 updates, new kernel), reboot; `20auto-upgrades` and the 04:00 reboot file; `PermitRootLogin no`; ufw rules, then `ufw enable` | Both containers back on their own after the reboot, kernel `7.0.0-44`, "0 updates can be applied". Allowed origins Ubuntu only, no Docker repository. `permitrootlogin no` and a fresh login over Tailscale. `ufw enable` pasted together with the next line read that line as its answer and cancelled (`Status: inactive`); run alone, `active` with only `22/tcp on tailscale0`. From the laptop, `ssh -o ConnectTimeout=5 ubuntu@10.97.0.83` timed out, and `curl -m 5 http://10.97.0.83:5678/healthz` exited 28. The trap itself was not repeated: it was shown on the first build, and the rebuild checks only the safe state |
+| 2026-11-26 | 1.13: `env_file: .env` replaced by an `environment:` list of n8n's four variables (D31), branch checked out on the VM, `docker compose up -d n8n` (a restart would keep the old environment), stock lowered | Variable names inside the container (values not printed) went from nine, including `SHOPIFY_CLIENT_SECRET` and `TUNNEL_TOKEN`, to `N8N_EDITOR_BASE_URL`, `N8N_ENCRYPTION_KEY`, `N8N_PROXY_HOPS`, `N8N_WEBHOOK_URL` and the image's `N8N_RELEASE_TYPE`. Slack alert "Low stock: The Collection Snowboard: Hydrogen. 2 left at this location, 2 in total.", so the encryption key still decrypts the credentials |
