@@ -8,6 +8,76 @@ real server at step 1.14.
 The rehearsal VM is a stand-in for the cloud machine. It runs only while the laptop is on,
 so it is somewhere to make mistakes for free, not a place to run the store from.
 
+## The finished server at a glance
+
+What the nine parts below build, and the only roads in and out. The numbers match the parts.
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="images/server-setup-network-dark.svg">
+  <img alt="How the server is wired: Shopify webhooks reach n8n through Cloudflare and a tunnel the server opens outward; the owner reaches SSH and the editor only over Tailscale; n8n calls Slack and Shopify outward; the firewall drops everything else." src="images/server-setup-network-light.svg">
+</picture>
+
+<details>
+<summary>Text version of the picture</summary>
+
+The laptop holds the Multipass VM (part 1), which runs Ubuntu 26.04 LTS. Inside it, Docker
+Compose (part 2) runs two containers: `n8n` and `cloudflared`. n8n keeps its data in the
+`n8n_data` volume. Next to them are the repo and `.env` (part 3), SSH (parts 4 and 8),
+Tailscale (part 5) and automatic updates (part 7). A firewall, `ufw` (part 8), wraps the VM:
+it denies everything coming in and allows everything going out.
+
+Four roads:
+
+- **Webhook, public.** Shopify sends an HTTPS POST to Cloudflare at
+  `hooks.mjesar.dpdns.org`, which lets through only `/webhook/` and `/healthz`. Cloudflare
+  passes it down the tunnel that `cloudflared` opened from inside the VM (part 6), and
+  `cloudflared` hands it to n8n on port 5678. Nothing on the VM listens for the internet.
+- **You, over Tailscale.** The laptop's terminal holds the SSH key. It reaches the VM's
+  Tailscale address, the firewall's one open gate (SSH on `tailscale0`), then SSH, and an
+  SSH tunnel carries the browser from `127.0.0.1:5680` on the laptop to the editor on
+  `127.0.0.1:5678` inside the VM.
+- **Calls going out.** n8n calls Shopify's Admin API (a token, then the product lookup)
+  and Slack's API (the alert). Outgoing traffic is allowed.
+- **Blocked.** Anything else, such as SSH or port 5678 on the VM's Multipass address
+  `10.97.0.x`, hits the firewall and times out. n8n is published on `127.0.0.1` only
+  (part 9), so Docker does not open it past the firewall.
+
+On the cloud server at 1.14 the picture is the same without the laptop around it.
+
+</details>
+
+Where each secret lives, and which container can see it:
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="images/server-setup-secrets-dark.svg">
+  <img alt="Where the secrets live: .env holds nine values; Docker Compose gives n8n four and cloudflared one; a host script reads the Shopify values; the secrets n8n uses are pasted into its credentials and stored encrypted." src="images/server-setup-secrets-light.svg">
+</picture>
+
+<details>
+<summary>Text version of the picture</summary>
+
+`.env` on the server (copied from the laptop, `chmod 600`, never in git) holds nine values
+in three groups:
+
+- `N8N_ENCRYPTION_KEY`, `N8N_WEBHOOK_URL`, `N8N_PROXY_HOPS`, `N8N_EDITOR_BASE_URL`: Docker
+  Compose passes these four, and only these, to the n8n container (D31). n8n also blocks
+  `$env` in nodes by default.
+- `TUNNEL_TOKEN`: passed only to the `cloudflared` container (D19). It says which tunnel to
+  serve and is the key to it.
+- `SHOPIFY_STORE`, `SHOPIFY_CLIENT_ID`, `SHOPIFY_CLIENT_SECRET`: no container gets these.
+  `scripts/subscribe-webhook.sh` reads them on the host, with the webhook URL, to subscribe
+  the store once.
+
+Compose fills each `${NAME}` in `docker-compose.yml` from `.env`, but a container receives
+only the names listed under its own `environment:`.
+
+The secrets n8n itself uses (the Slack bot token, the Shopify webhook signing secret and the
+Shopify client credentials) are pasted into n8n's editor, not `.env`. n8n stores them in the
+`n8n_data` volume, encrypted with `N8N_ENCRYPTION_KEY`, and the repo holds only
+secret-free stubs (D28).
+
+</details>
+
 ## 1. Create the machine
 
 On the laptop. Multipass on Linux ships as a snap, from Canonical, who also make Ubuntu.
